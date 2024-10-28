@@ -1,9 +1,21 @@
 import { CronJob } from 'cron'
 import http from 'http'
-import schedule from './handlers/schedule.js'
+import scheduled from './handlers/scheduled.js'
 import interaction from './handlers/interaction.js'
 
-const job = new CronJob('5 * * * * *', schedule, null, true)
+process.on('SIGINT', () => process.exit())
+process.on('SIGTERM', () => process.exit())
+
+const cron = CronJob.from({
+    cronTime: '5 * * * * *',
+    onTick: async () => {
+        try {
+            await scheduled()
+        } catch (error) {
+            console.error(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), error)
+        }
+    },
+})
 
 const server = http.createServer(async (request, response) => {
     try {
@@ -17,7 +29,5 @@ const server = http.createServer(async (request, response) => {
     }
 })
 
-process.on('SIGINT', () => process.exit())
-process.on('SIGTERM', () => process.exit())
-
+cron.start()
 server.listen(3000)
