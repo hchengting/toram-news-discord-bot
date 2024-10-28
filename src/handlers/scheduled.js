@@ -202,18 +202,14 @@ async function sendPendingNews() {
 }
 
 // Fetch latest news and send to Discord
-export default async function schedule() {
-    try {
-        const news = await fetchNews()
-        const { deletions, updates } = checkNewsDifference(news)
+export default async function scheduled() {
+    const news = await fetchNews()
+    const { deletions, updates } = checkNewsDifference(news)
 
-        if (updates.length) {
-            const newsEmbeds = await generateNewsEmbeds(updates)
-            query.updateLatestNews(deletions, updates, newsEmbeds)
-        }
-
-        await sendPendingNews()
-    } catch (error) {
-        console.error(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), error)
+    if (updates.length) {
+        const newsEmbeds = await generateNewsEmbeds(updates)
+        query.updateLatestNews(deletions, updates, newsEmbeds)
     }
+
+    await sendPendingNews()
 }
