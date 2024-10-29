@@ -33,10 +33,10 @@ const query = {
         // Insert pending news based on the news category subsribed by each channel
         db.exec(`
             INSERT INTO pending_news (channel_id, body)
-            SELECT cs.channel_id, temp.news_embeds.body
+            SELECT channel_subscriptions.channel_id, temp.news_embeds.body
             FROM temp.news_embeds
-            JOIN channel_subscriptions cs
-            ON temp.news_embeds.category = cs.category
+            JOIN channel_subscriptions
+            ON temp.news_embeds.category = channel_subscriptions.category
             ORDER BY temp.news_embeds.id ASC;
 
             DROP TABLE temp.news_embeds;
@@ -75,8 +75,8 @@ const query = {
         `)
         stmt.run(id)
     },
-    // Clear pending news retrieval timestamp by id
-    clearPendingNewsRetrieval: (id) => {
+    // Reset pending news retrieval timestamp by id
+    resetPendingNews: (id) => {
         const stmt = db.prepare(`
             UPDATE pending_news
             SET retrieved_at = 0

@@ -189,7 +189,7 @@ async function sendPendingNews() {
             })
             query.deletePendingNews(news.id)
         } catch (error) {
-            query.clearPendingNewsRetrieval(news.id)
+            query.resetPendingNews(news.id)
 
             // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
             if ([50001, 50013, 10003].includes(error.code)) {
