@@ -17,7 +17,7 @@ const transaction = (callback) => {
 const query = {
     // List all latest news
     listLatestNews: () => db.prepare(SQL.listLatestNews).all(),
-    // Update latest news and insert pending news
+    // Update latest news and insert pending news based on categories subscribed by each channel
     updateLatestNews: (deletions, updates, newsEmbeds) => {
         transaction(() => {
             const deleteStmt = db.prepare(SQL.deleteLatestNews)
@@ -37,9 +37,9 @@ const query = {
     },
     // If the oldest pending news has not been retrieved for more than 5 minutes, retrieve it and update its retrieval timestamp
     retrievePendingNews: () => db.prepare(SQL.retrievePendingNews).get(),
-    // Delete pending news by id
+    // Delete pending news
     deletePendingNews: (id) => db.prepare(SQL.deletePendingNewsById).run(id),
-    // Reset pending news retrieval timestamp by id
+    // Reset pending news retrieval timestamp
     resetPendingNews: (id) => db.prepare(SQL.resetPendingNews).run(id),
     // Check if a channel is subscribed to any category
     isChannelSubscribed: (channelId) => !!db.prepare(SQL.listChannelSubscriptions).get(channelId),
@@ -50,7 +50,7 @@ const query = {
             db.prepare(SQL.deleteChannelSubscriptions).run(channelId)
         })
     },
-    // Insert channel subscriptions with categories
+    // Delete channel from pending news and channel subscriptions, and insert channel subscriptions with new categories
     channelSubscribe: (channelId, categories) => {
         transaction(() => {
             db.prepare(SQL.deletePendingNewsByChannelId).run(channelId)

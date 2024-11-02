@@ -137,12 +137,9 @@ function checkNewsDifference(news) {
     const latestNewsSet = new Set(latestNews.map((n) => JSON.stringify(n)))
     const newsSet = new Set(news.map((n) => JSON.stringify(n)))
 
-    const deletions = [...latestNewsSet.difference(newsSet)].map((n) => JSON.parse(n))
-    const updates = [...newsSet.difference(latestNewsSet)].map((n) => JSON.parse(n))
-
     return {
-        deletions,
-        updates,
+        deletions: [...latestNewsSet.difference(newsSet)].map((n) => JSON.parse(n)),
+        updates: [...newsSet.difference(latestNewsSet)].map((n) => JSON.parse(n)),
     }
 }
 

@@ -7,15 +7,12 @@ const categoryMap = {
     'icon_news_defect': 'BUG',
 }
 
-export const getCategory = (src) => {
-    const icon = src.split('/').at(-1).split('.').at(0)
-    return categoryMap[icon] || ''
-}
+export const getCategory = (src) => categoryMap[src.split('/').at(-1).split('.').at(0)] || ''
 
 export const categories = Object.values(categoryMap)
 
 export const componentOptions = [
-    { label: '商城', description: '道具、露珠道具、造型裝備、露珠增值等相關內容', value: '商城' },
+    { label: '商城', description: '造型裝備、露珠道具、露珠增值等相關內容', value: '商城' },
     { label: '活動', description: '加速機、限時活動、官方直播、社群活動等相關內容', value: '活動' },
     { label: '更新', description: '遊戲內容更新、版本更新、劇情更新、地圖更新等相關內容', value: '更新' },
     { label: '維修', description: '伺服器維修、緊急維修等相關內容', value: '維修' },
