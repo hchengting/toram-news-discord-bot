@@ -1,10 +1,16 @@
 import * as cheerio from 'cheerio'
 import { htmlToText } from 'html-to-text'
-import { Routes } from 'discord-api-types/v10'
-import { getCategory } from '../consts.js'
-import discordAPI from '../discord/api.js'
-import formatters from '../formatter.js'
-import query from '../db/query.js'
+import {
+    channelUnsubscribe,
+    deletePendingNews,
+    listLatestNews,
+    resetPendingNews,
+    retrievePendingNews,
+    updateLatestNews,
+} from '../db/queries.js'
+import { postChannelMessage } from '../discord/api.js'
+import { getCategory } from '../helpers/consts.js'
+import formatters from '../helpers/formatters.js'
 
 const url = 'https://tw.toram.jp/information'
 const headers = {
@@ -133,7 +139,7 @@ async function fetchNewsContent(news) {
 }
 
 function checkNewsDifference(news) {
-    const latestNews = query.listLatestNews()
+    const latestNews = listLatestNews()
     const latestNewsSet = new Set(latestNews.map((n) => JSON.stringify(n)))
     const newsSet = new Set(news.map((n) => JSON.stringify(n)))
 
@@ -175,22 +181,18 @@ async function generateNewsEmbeds(updates) {
 
 async function sendPendingNews() {
     while (true) {
-        const news = query.retrievePendingNews()
+        const news = retrievePendingNews()
         if (!news) break
 
         try {
-            await discordAPI.post(Routes.channelMessages(news.channelId), {
-                headers: { 'content-type': 'application/json' },
-                passThroughBody: true,
-                body: news.body,
-            })
-            query.deletePendingNews(news.id)
+            await postChannelMessage(news.channelId, news.body)
+            deletePendingNews(news.id)
         } catch (error) {
-            query.resetPendingNews(news.id)
+            resetPendingNews(news.id)
 
             // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
             if ([50001, 50013, 10003].includes(error.code)) {
-                query.channelUnsubscribe(news.channelId)
+                channelUnsubscribe(news.channelId)
             } else {
                 throw error
             }
@@ -199,13 +201,13 @@ async function sendPendingNews() {
 }
 
 // Fetch latest news and send to Discord
-export default async function scheduled() {
+export default async function handleSchedule() {
     const news = await fetchNews()
     const { deletions, updates } = checkNewsDifference(news)
 
     if (updates.length) {
         const newsEmbeds = await generateNewsEmbeds(updates)
-        query.updateLatestNews(deletions, updates, newsEmbeds)
+        updateLatestNews(deletions, updates, newsEmbeds)
     }
 
     await sendPendingNews()

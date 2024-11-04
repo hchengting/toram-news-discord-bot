@@ -83,7 +83,7 @@ const SQL = {
         WHERE id = ?;
     `,
     listChannelSubscriptions: `
-        SELECT *
+        SELECT category
         FROM channel_subscriptions
         WHERE channel_id = ?;
     `,

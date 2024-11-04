@@ -1,5 +1,4 @@
-# First stage: build
-FROM node:22.10.0-alpine AS build
+FROM node:jod-alpine AS build
 
 WORKDIR /app
 
@@ -12,8 +11,7 @@ COPY . .
 
 RUN pnpm run build
 
-# Second stage: run
-FROM node:22.10.0-alpine
+FROM node:jod-alpine
 
 WORKDIR /app
 

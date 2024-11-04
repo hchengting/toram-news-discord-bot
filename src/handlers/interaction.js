@@ -1,8 +1,9 @@
+import { ComponentType, InteractionResponseType, InteractionType } from 'discord-api-types/v10'
 import { verifyKey } from 'discord-interactions'
-import { Routes, InteractionType, InteractionResponseType, ComponentType } from 'discord-api-types/v10'
-import { categories, componentOptions, command } from '../consts.js'
-import discordAPI from '../discord/api.js'
-import query from '../db/query.js'
+import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '../db/queries.js'
+import { deleteChannelMessage, postChannelMessage } from '../discord/api.js'
+import commands from '../discord/commands.js'
+import { categories, componentOptions, sortCategories } from '../helpers/consts.js'
 
 async function verifyInteraction(request) {
     if (request.method !== 'POST') {
@@ -23,18 +24,11 @@ async function verifyInteraction(request) {
 
 async function checkBotPermission(channelId) {
     try {
-        const message = await discordAPI.post(Routes.channelMessages(channelId), {
-            body: {
-                embeds: [
-                    {
-                        title: '處理中',
-                        description: '請稍後...',
-                        url: 'https://discord.com',
-                    },
-                ],
-            },
-        })
-        await discordAPI.delete(Routes.channelMessage(channelId, message.id))
+        const message = await postChannelMessage(
+            channelId,
+            JSON.stringify({ embeds: [{ title: '處理中', description: '請稍後...', url: 'https://discord.com' }] })
+        )
+        await deleteChannelMessage(channelId, message.id)
         return true
     } catch (error) {
         return false
@@ -51,7 +45,15 @@ async function handleSlashCommand(interaction) {
     const channelId = interaction.channel.id
 
     switch (interaction.data.name) {
-        case command.SUBSCRIBE.name:
+        case commands.LIST.name:
+            const values = sortCategories(listChannelSubscriptions(channelId).map((s) => s.category))
+
+            if (!values.length) {
+                return interactionResponse({ content: '未訂閱！' })
+            }
+
+            return interactionResponse({ content: `已訂閱類別：${values.join('、')}` })
+        case commands.SUBSCRIBE.name:
             if (!(await checkBotPermission(channelId))) {
                 return interactionResponse({ content: '訂閱失敗！請檢查發送訊息、嵌入連結等相關權限。' })
             }
@@ -73,12 +75,12 @@ async function handleSlashCommand(interaction) {
                     },
                 ],
             })
-        case command.UNSUBSCRIBE.name:
-            if (!query.isChannelSubscribed(channelId)) {
+        case commands.UNSUBSCRIBE.name:
+            if (!isChannelSubscribed(channelId)) {
                 return interactionResponse({ content: '未訂閱！' })
             }
 
-            query.channelUnsubscribe(channelId)
+            channelUnsubscribe(channelId)
             return interactionResponse({ content: '取消訂閱成功！' })
         default:
             return interactionResponse({ content: '錯誤指令！' })
@@ -87,16 +89,16 @@ async function handleSlashCommand(interaction) {
 
 async function handleSelectCategory(interaction) {
     const channelId = interaction.channel.id
-    const values = interaction.data.values.sort((a, b) => categories.indexOf(a) - categories.indexOf(b))
+    const values = sortCategories(interaction.data.values)
 
-    query.channelSubscribe(channelId, values)
-    await discordAPI.delete(Routes.channelMessage(channelId, interaction.message.id))
+    channelSubscribe(channelId, values)
+    await deleteChannelMessage(channelId, interaction.message.id)
 
     return interactionResponse({ content: `訂閱成功！類別：${values.join('、')}` })
 }
 
 // Handle Discord interactions
-export default async function interaction(request) {
+export default async function handleInteraction(request) {
     const { clientError, interaction } = await verifyInteraction(request)
     if (clientError) return clientError
 

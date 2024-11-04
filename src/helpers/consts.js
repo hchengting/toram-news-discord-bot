@@ -7,10 +7,7 @@ const categoryMap = {
     'icon_news_defect': 'BUG',
 }
 
-export const getCategory = (src) => categoryMap[src.split('/').at(-1).split('.').at(0)] || ''
-
 export const categories = Object.values(categoryMap)
-
 export const componentOptions = [
     { label: '商城', description: '造型裝備、露珠道具、露珠增值等相關內容', value: '商城' },
     { label: '活動', description: '加速機、限時活動、官方直播、社群活動等相關內容', value: '活動' },
@@ -20,13 +17,5 @@ export const componentOptions = [
     { label: 'BUG', description: '遊戲內容錯誤、系統錯誤、操作錯誤等相關內容', value: 'BUG' },
 ]
 
-export const command = {
-    SUBSCRIBE: {
-        name: 'subscribe',
-        description: '訂閱公告至此頻道',
-    },
-    UNSUBSCRIBE: {
-        name: 'unsubscribe',
-        description: '取消此頻道所有訂閱',
-    },
-}
+export const getCategory = (src) => categoryMap[src.split('/').at(-1).split('.').at(0)] || ''
+export const sortCategories = (values) => values.sort((a, b) => categories.indexOf(a) - categories.indexOf(b))
