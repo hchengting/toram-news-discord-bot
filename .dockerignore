@@ -1,5 +1,5 @@
-*.env
-*.db
+.env.local
 .git
+data
 dist
 node_modules

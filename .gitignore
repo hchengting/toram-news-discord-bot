@@ -1,4 +1,4 @@
-*.env
-*.db
+.env.local
+data
 dist
 node_modules

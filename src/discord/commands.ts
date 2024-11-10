@@ -1,4 +1,4 @@
-import { registerCommands } from './api.js'
+import { registerCommands } from './api';
 
 const commands = {
     LIST: {
@@ -13,8 +13,8 @@ const commands = {
         name: 'unsubscribe',
         description: '取消此頻道所有訂閱',
     },
-}
+};
 
-await registerCommands(JSON.stringify(Object.values(commands)))
+await registerCommands(Object.values(commands));
 
-export default commands
+export default commands;

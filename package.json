@@ -1,24 +1,23 @@
 {
   "name": "toram-news-discord-bot",
-  "version": "1.0.0",
+  "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env --experimental-sqlite src/index.js",
-    "build": "rollup -c"
+    "dev": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/html-to-text": "^9.0.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@discordjs/rest": "^2.4.0",
     "cheerio": "^1.0.0",
     "croner": "^9.0.0",
-    "discord-api-types": "^0.37.103",
+    "discord-api-types": "^0.37.104",
     "discord-interactions": "^4.1.0",
     "html-to-text": "^9.0.5"
-  },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.1",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.3.0",
-    "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.24.2"
   }
 }

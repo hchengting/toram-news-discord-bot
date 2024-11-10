@@ -1,20 +1,17 @@
-FROM node:jod-alpine AS build
+FROM oven/bun:1.1.34-alpine AS build
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
-
 COPY . .
 
-RUN pnpm run build
+RUN bun install --production --frozen-lockfile
 
-FROM node:jod-alpine
+RUN bun build ./src/index.ts --outdir ./dist --target bun --minify
+
+FROM oven/bun:1.1.34-alpine
 
 WORKDIR /app
 
 COPY --from=build /app/dist/index.js /app/index.js
 
-CMD ["node", "--experimental-sqlite", "index.js"]
+CMD ["bun", "index.js"]

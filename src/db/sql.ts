@@ -31,11 +31,11 @@ const SQL = {
     `,
     deleteLatestNews: `
         DELETE FROM latest_news
-        WHERE url = ?;
+        WHERE url = $url;
     `,
     insertLatestNews: `
         INSERT INTO latest_news (date, category, title, url, thumbnail)
-        VALUES (?, ?, ?, ?, ?);
+        VALUES ($date, $category, $title, $url, $thumbnail);
     `,
     createTempNewsEmbeds: `
         CREATE TABLE temp.news_embeds (
@@ -46,7 +46,7 @@ const SQL = {
     `,
     insertNewsEmbeds: `
         INSERT INTO temp.news_embeds (body, category)
-        VALUES (?, ?);
+        VALUES ($body, $category);
     `,
     insertPendingNews: `
         INSERT INTO pending_news (channel_id, body)
@@ -71,29 +71,29 @@ const SQL = {
     `,
     deletePendingNewsById: `
         DELETE FROM pending_news
-        WHERE id = ?;
+        WHERE id = $id;
     `,
     deletePendingNewsByChannelId: `
         DELETE FROM pending_news
-        WHERE channel_id = ?;
+        WHERE channel_id = $channelId;
     `,
     resetPendingNews: `
         UPDATE pending_news
         SET retrieved_at = 0
-        WHERE id = ?;
+        WHERE id = $id;
     `,
     listChannelSubscriptions: `
         SELECT category
         FROM channel_subscriptions
-        WHERE channel_id = ?;
+        WHERE channel_id = $channelId;
     `,
     deleteChannelSubscriptions: `
         DELETE FROM channel_subscriptions
-        WHERE channel_id = ?;
+        WHERE channel_id = $channelId;
     `,
     insertChannelSubscriptions: `
         INSERT INTO channel_subscriptions (channel_id, category)
-        VALUES (?, ?);
+        VALUES ($channelId, $category);
     `,
 }
 
