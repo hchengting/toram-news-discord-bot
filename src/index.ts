@@ -1,11 +1,11 @@
-import { Cron } from 'croner';
-import handleInteraction from './handlers/interaction';
-import handleSchedule from './handlers/schedule';
+import { Cron } from '@hexagon/croner';
+import handleInteraction from './handlers/interaction.ts';
+import handleSchedule from './handlers/schedule.ts';
 
-process.on('SIGINT', () => process.exit());
-process.on('SIGTERM', () => process.exit());
+Deno.addSignalListener('SIGINT', () => Deno.exit());
+if (Deno.build.os !== 'windows') Deno.addSignalListener('SIGTERM', () => Deno.exit());
 
-const cron = new Cron('5 * * * * *', async (): Promise<void> => {
+const _cron = new Cron('5 * * * * *', async (): Promise<void> => {
     try {
         await handleSchedule();
     } catch (error) {
@@ -13,9 +13,11 @@ const cron = new Cron('5 * * * * *', async (): Promise<void> => {
     }
 });
 
-Bun.serve({
-    async fetch(request: Request): Promise<Response> {
+Deno.serve({ port: 3000 }, async (request: Request): Promise<Response> => {
+    try {
         return await handleInteraction(request);
-    },
-    port: 3000,
+    } catch (error) {
+        console.error(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), error);
+        return new Response('Internal Server Error', { status: 500 });
+    }
 });

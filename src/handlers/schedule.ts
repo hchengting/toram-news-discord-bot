@@ -1,5 +1,5 @@
-import * as cheerio from 'cheerio';
 import { DiscordAPIError } from '@discordjs/rest';
+import * as cheerio from 'cheerio';
 import { htmlToText } from 'html-to-text';
 import {
     channelUnsubscribe,
@@ -8,11 +8,11 @@ import {
     resetPendingNews,
     retrievePendingNews,
     updateLatestNews,
-} from '../db/queries';
-import { postChannelMessage } from '../discord/api';
-import { getCategory } from '../helpers/categories';
-import formatters from '../helpers/formatters';
-import { serialize } from '../helpers/utils';
+} from '../db/queries.ts';
+import { postChannelMessage } from '../discord/api.ts';
+import { getCategory } from '../helpers/categories.ts';
+import formatters from '../helpers/formatters.ts';
+import { serialize } from '../helpers/utils.ts';
 
 const url = 'https://tw.toram.jp/information';
 const headers = {
@@ -32,7 +32,7 @@ async function fetchNews(): Promise<News[]> {
         news: [
             {
                 selector: 'li.news_border',
-                value: (el, _) => {
+                value: (el, _key) => {
                     const $el = $(el);
 
                     return {
@@ -84,7 +84,7 @@ async function fetchNewsContent(news: News): Promise<Embed[]> {
     $container.find('h2.deluxetitle:contains("指定怪物")').nextAll('br').remove();
 
     // Resolve relative href
-    $container.find('a').each((_, el) => {
+    $container.find('a').each((_i, el) => {
         $(el).attr('href', $(el).prop('href'));
     });
 
@@ -93,7 +93,7 @@ async function fetchNewsContent(news: News): Promise<Embed[]> {
 
     // Split into sections by deluxe titles
     const $deluxeTitles = $container.find('h2.deluxetitle[id]');
-    const sectionIndexs = [0, ...$deluxeTitles.map((_, el) => $contents.index(el)).toArray(), $contents.length];
+    const sectionIndexs = [0, ...$deluxeTitles.map((_i, el) => $contents.index(el)).toArray(), $contents.length];
 
     for (let i = 0; i < sectionIndexs.length - 1; i++) {
         const $section = $contents.slice(sectionIndexs[i] + 1, sectionIndexs[i + 1]);
@@ -124,7 +124,7 @@ async function fetchNewsContent(news: News): Promise<Embed[]> {
         // Extract images from this section
         const images = $section
             .find('img')
-            .map((_, el) => ({ url: $(el).prop('src') || '' }))
+            .map((_i, el) => ({ url: $(el).prop('src') || '' }))
             .toArray();
 
         embeds.push({

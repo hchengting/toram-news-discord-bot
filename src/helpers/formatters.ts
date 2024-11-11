@@ -1,7 +1,8 @@
+// @deno-types="npm:@types/html-to-text"
 import type { DomNode, FormatCallback } from 'html-to-text';
 
 const formatters: Record<string, FormatCallback> = {
-    formatAnchor: (elem, walk, builder, _) => {
+    formatAnchor: (elem, walk, builder, _formatOptions) => {
         const isText = elem.children?.filter((child) => child.type === 'text')?.length === 1;
         const href = elem.attribs?.href || '';
 
@@ -18,7 +19,7 @@ const formatters: Record<string, FormatCallback> = {
             builder.addInline(href, { noWordTransform: true });
         }
     },
-    formatTable: (elem, walk, builder, _) => {
+    formatTable: (elem, walk, builder, _formatOptions) => {
         const walkTable = (elem: DomNode) => {
             if (elem.type !== 'tag') return;
 

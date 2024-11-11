@@ -1,4 +1,2 @@
-.env.local
+.env
 data
-dist
-node_modules

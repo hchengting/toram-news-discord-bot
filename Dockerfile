@@ -1,17 +1,11 @@
-FROM oven/bun:1.1.34-alpine AS build
+FROM denoland/deno:alpine-2.0.6
+
+EXPOSE 3000
 
 WORKDIR /app
 
 COPY . .
 
-RUN bun install --production --frozen-lockfile
+RUN deno install --frozen
 
-RUN bun build ./src/index.ts --outdir ./dist --target bun --minify
-
-FROM oven/bun:1.1.34-alpine
-
-WORKDIR /app
-
-COPY --from=build /app/dist/index.js /app/index.js
-
-CMD ["bun", "index.js"]
+CMD ["deno", "run", "-A", "--unstable-ffi", "./src/index.ts"]

@@ -1,14 +1,15 @@
-import { Routes } from 'discord-api-types/v10';
-import { REST } from '@discordjs/rest';
-
 import type {
-    APIMessage,
     APIApplicationCommand,
+    APIMessage,
     RESTPostAPIChannelMessageJSONBody,
     RESTPutAPIApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 
-const { APPLICATION_ID, DISCORD_BOT_TOKEN } = process.env;
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v10';
+
+const APPLICATION_ID = Deno.env.get('APPLICATION_ID');
+const DISCORD_BOT_TOKEN = Deno.env.get('DISCORD_BOT_TOKEN');
 
 if (!APPLICATION_ID) throw new Error('Missing Discord application ID.');
 if (!DISCORD_BOT_TOKEN) throw new Error('Missing Discord bot token.');

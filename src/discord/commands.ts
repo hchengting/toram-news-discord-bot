@@ -1,4 +1,4 @@
-import { registerCommands } from './api';
+import { registerCommands } from './api.ts';
 
 const commands = {
     LIST: {

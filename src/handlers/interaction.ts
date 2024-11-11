@@ -3,17 +3,17 @@ import type {
     APIInteractionResponse,
     APIMessageComponentSelectMenuInteraction,
 } from 'discord-api-types/v10';
-import type { Interaction, InteractionResponseParams, VerifyInteraction } from '../types/interaction';
+import type { Interaction, InteractionResponseParams, VerifyInteraction } from '../types/interaction.d.ts';
 
 import { ComponentType, InteractionResponseType, InteractionType } from 'discord-api-types/v10';
 import { verifyKey } from 'discord-interactions';
-import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '../db/queries';
-import { deleteChannelMessage, postChannelMessage } from '../discord/api';
-import commands from '../discord/commands';
-import { categories, componentOptions, sortCategories } from '../helpers/categories';
-import { serialize } from '../helpers/utils';
+import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '../db/queries.ts';
+import { deleteChannelMessage, postChannelMessage } from '../discord/api.ts';
+import commands from '../discord/commands.ts';
+import { categories, componentOptions, sortCategories } from '../helpers/categories.ts';
+import { serialize } from '../helpers/utils.ts';
 
-const { DISCORD_PUBLIC_KEY } = process.env;
+const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
 
 if (!DISCORD_PUBLIC_KEY) throw new Error('Missing Discord public key.');
 
@@ -38,7 +38,7 @@ async function verifyInteraction(request: Request): Promise<VerifyInteraction> {
     try {
         const interaction = JSON.parse(body) as Interaction;
         return { valid: true, interaction };
-    } catch (error) {
+    } catch (_error) {
         return { valid: false, clientError: new Response('Invalid JSON payload.', { status: 400 }) };
     }
 }
@@ -50,7 +50,7 @@ async function checkBotPermission(channelId: string): Promise<boolean> {
         });
         await deleteChannelMessage(channelId, message.id);
         return true;
-    } catch (error) {
+    } catch (_error) {
         return false;
     }
 }
@@ -65,8 +65,10 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
     const channelId = interaction.channel.id;
 
     switch (interaction.data.name) {
+        // deno-lint-ignore no-case-declarations
         case commands.LIST.name:
-            const values = sortCategories(listChannelSubscriptions(channelId).map((s) => s.category as Category));
+            const subscribedCategories = listChannelSubscriptions(channelId).map((s) => s.category as Category);
+            const values = sortCategories(subscribedCategories);
 
             if (!values.length) {
                 return interactionResponse({ content: '未訂閱！' });
@@ -133,6 +135,7 @@ export default async function handleInteraction(request: Request): Promise<Respo
             if (interaction.data.component_type === ComponentType.StringSelect) {
                 return await handleSelectCategory(interaction);
             }
+        /* falls through */
         default:
             return new Response('Bad request.', { status: 400 });
     }
