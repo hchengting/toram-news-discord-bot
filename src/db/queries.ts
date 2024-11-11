@@ -1,8 +1,8 @@
 import type { RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
-import { serialize } from '../helpers/utils.ts';
-import SQL from './sql.ts';
+import SQL from '~/db/sql.ts';
+import { serialize } from '~/helpers/utils.ts';
 
 const DB_PATH = Deno.env.get('DB_PATH');
 
@@ -82,4 +82,9 @@ export function channelSubscribe(channelId: string, categories: Category[]): voi
         const stmt = db.prepare(SQL.insertChannelSubscriptions);
         categories.forEach((category) => stmt.run({ channelId, category }));
     })();
+}
+
+// Close the database connection
+export function closeDatabase(): void {
+    db.close();
 }

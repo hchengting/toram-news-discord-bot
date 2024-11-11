@@ -3,15 +3,15 @@ import type {
     APIInteractionResponse,
     APIMessageComponentSelectMenuInteraction,
 } from 'discord-api-types/v10';
-import type { Interaction, InteractionResponseParams, VerifyInteraction } from '../types/interaction.d.ts';
+import type { Interaction, InteractionResponseParams, VerifyInteraction } from '~/types/interaction.d.ts';
 
 import { ComponentType, InteractionResponseType, InteractionType } from 'discord-api-types/v10';
 import { verifyKey } from 'discord-interactions';
-import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '../db/queries.ts';
-import { deleteChannelMessage, postChannelMessage } from '../discord/api.ts';
-import commands from '../discord/commands.ts';
-import { categories, componentOptions, sortCategories } from '../helpers/categories.ts';
-import { serialize } from '../helpers/utils.ts';
+import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '~/db/queries.ts';
+import { deleteChannelMessage, postChannelMessage } from '~/discord/api.ts';
+import commands from '~/discord/commands.ts';
+import { categories, componentOptions, sortCategories } from '~/helpers/categories.ts';
+import { deserialize, serialize } from '~/helpers/utils.ts';
 
 const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
 
@@ -36,7 +36,7 @@ async function verifyInteraction(request: Request): Promise<VerifyInteraction> {
     }
 
     try {
-        const interaction = JSON.parse(body) as Interaction;
+        const interaction = deserialize<Interaction>(body);
         return { valid: true, interaction };
     } catch (_error) {
         return { valid: false, clientError: new Response('Invalid JSON payload.', { status: 400 }) };

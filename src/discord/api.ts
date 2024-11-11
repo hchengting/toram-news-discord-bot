@@ -31,6 +31,6 @@ export function postChannelMessage(channelId: string, body: string | RESTPostAPI
     }
 }
 
-export function deleteChannelMessage(channelId: string, messageId: string): Promise<{}> {
-    return rest.delete(Routes.channelMessage(channelId, messageId)) as Promise<{}>;
+export function deleteChannelMessage(channelId: string, messageId: string): Promise<Record<PropertyKey, never>> {
+    return rest.delete(Routes.channelMessage(channelId, messageId)) as Promise<Record<PropertyKey, never>>;
 }

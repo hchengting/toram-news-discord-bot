@@ -1,4 +1,4 @@
-import { registerCommands } from './api.ts';
+import { registerCommands } from '~/discord/api.ts';
 
 const commands = {
     LIST: {

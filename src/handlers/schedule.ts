@@ -8,11 +8,11 @@ import {
     resetPendingNews,
     retrievePendingNews,
     updateLatestNews,
-} from '../db/queries.ts';
-import { postChannelMessage } from '../discord/api.ts';
-import { getCategory } from '../helpers/categories.ts';
-import formatters from '../helpers/formatters.ts';
-import { serialize } from '../helpers/utils.ts';
+} from '~/db/queries.ts';
+import { postChannelMessage } from '~/discord/api.ts';
+import { getCategory } from '~/helpers/categories.ts';
+import formatters from '~/helpers/formatters.ts';
+import { deserialize, serialize } from '~/helpers/utils.ts';
 
 const url = 'https://tw.toram.jp/information';
 const headers = {
@@ -148,8 +148,8 @@ function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[]
     const newsSet = new Set(news.map((n) => serialize<News>(n)));
 
     return {
-        deletions: [...latestNewsSet.difference(newsSet)].map((n) => JSON.parse(n) as News),
-        updates: [...newsSet.difference(latestNewsSet)].map((n) => JSON.parse(n) as News),
+        deletions: [...latestNewsSet.difference(newsSet)].map((n) => deserialize<News>(n)),
+        updates: [...newsSet.difference(latestNewsSet)].map((n) => deserialize<News>(n)),
     };
 }
 

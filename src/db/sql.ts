@@ -1,6 +1,8 @@
 // SQL queries
 const SQL = {
     initializeDatabase: `
+        PRAGMA journal_mode = WAL;
+
         CREATE TABLE IF NOT EXISTS latest_news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
@@ -95,6 +97,6 @@ const SQL = {
         INSERT INTO channel_subscriptions (channel_id, category)
         VALUES (:channelId, :category);
     `,
-}
+};
 
-export default SQL
+export default SQL;
