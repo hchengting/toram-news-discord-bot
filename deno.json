@@ -1,16 +1,19 @@
 {
   "tasks": {
-    "dev": "deno run -A --env-file --unstable-ffi ./src/index.ts"
+    "check": "deno check ./src/index.ts",
+    "dev": "deno run --env-file --allow-env --allow-net=0.0.0.0:3000,discord.com:443,tw.toram.jp:443 --allow-ffi --unstable-ffi ./src/index.ts"
   },
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
     "@discordjs/rest": "npm:@discordjs/rest@^2.4.0",
     "@hexagon/croner": "jsr:@hexagon/croner@^9.0.0",
-    "@types/html-to-text": "npm:@types/html-to-text@^9.0.4",
     "cheerio": "npm:cheerio@^1.0.0",
     "discord-api-types": "npm:discord-api-types@^0.37.104",
     "discord-interactions": "npm:discord-interactions@^4.1.0",
     "html-to-text": "npm:html-to-text@^9.0.5",
     "~/": "./src/"
+  },
+  "compilerOptions": {
+    "types": ["~/types/common.d.ts"]
   }
 }

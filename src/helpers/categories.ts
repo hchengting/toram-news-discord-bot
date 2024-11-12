@@ -1,10 +1,10 @@
 const categoryMap: Partial<Record<string, Category>> = {
-    'icon_news_other': '商城',
-    'icon_news_event': '活動',
-    'icon_news_update': '更新',
-    'icon_news_maintenance': '維修',
-    'icon_news_important': '重要',
-    'icon_news_defect': 'BUG',
+    'other': '商城',
+    'event': '活動',
+    'update': '更新',
+    'maintenance': '維修',
+    'important': '重要',
+    'defect': 'BUG',
 };
 
 export const categories = Object.values(categoryMap) as Category[];
@@ -18,9 +18,9 @@ export const componentOptions = [
     { label: 'BUG', description: '遊戲內容錯誤、系統錯誤、操作錯誤等相關內容', value: 'BUG' },
 ];
 
-export function getCategory(thumbnail: string): string {
-    const key = thumbnail.match(/icon_\w+/g)?.[0] || '';
-    return categoryMap[key] || '';
+export function getCategory(thumbnail: string | undefined): string | undefined {
+    const key = thumbnail?.match(/(?<=icon_news_)\w+(?=\.png)/)?.[0] || '';
+    return categoryMap[key];
 }
 
 export function sortCategories(values: Category[]): Category[] {

@@ -305,7 +305,6 @@
       "jsr:@db/sqlite@0.12",
       "jsr:@hexagon/croner@9",
       "npm:@discordjs/rest@^2.4.0",
-      "npm:@types/html-to-text@^9.0.4",
       "npm:cheerio@1",
       "npm:discord-api-types@~0.37.104",
       "npm:discord-interactions@^4.1.0",

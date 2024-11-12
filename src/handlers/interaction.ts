@@ -14,7 +14,6 @@ import { categories, componentOptions, sortCategories } from '~/helpers/categori
 import { deserialize, serialize } from '~/helpers/utils.ts';
 
 const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
-
 if (!DISCORD_PUBLIC_KEY) throw new Error('Missing Discord public key.');
 
 async function verifyInteraction(request: Request): Promise<VerifyInteraction> {

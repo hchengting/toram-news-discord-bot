@@ -37,7 +37,7 @@ async function fetchNews(): Promise<News[]> {
 
                     return {
                         date: $el.find('time').attr('datetime') || '',
-                        category: getCategory($el.find('img').prop('src') || ''),
+                        category: getCategory($el.find('img').prop('src')) || '',
                         title: $el.find('p.news_title').text() || '',
                         url: $el.find('a').prop('href') || '',
                         thumbnail: $el.find('img').prop('src') || '',

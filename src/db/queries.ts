@@ -5,7 +5,6 @@ import SQL from '~/db/sql.ts';
 import { serialize } from '~/helpers/utils.ts';
 
 const DB_PATH = Deno.env.get('DB_PATH');
-
 if (!DB_PATH) throw new Error('Missing database path.');
 
 const db = new Database(DB_PATH);
