@@ -1,8 +1,10 @@
+import type { RawFile } from '@discordjs/rest';
 import type { RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
+import { Buffer } from 'node:buffer';
 import SQL from '~/db/sql.ts';
-import { serialize } from '~/helpers/utils.ts';
+import { deserialize, serialize } from '~/helpers/utils.ts';
 
 const DB_PATH = Deno.env.get('DB_PATH');
 if (!DB_PATH) throw new Error('Missing database path.');
@@ -16,7 +18,7 @@ export function listLatestNews(): News[] {
 }
 
 // Update latest news and insert pending news based on categories subscribed by each channel
-export function updateLatestNews(deletions: News[], updates: News[], newsEmbeds: Embed[][]): void {
+export function updateLatestNews(deletions: News[], updates: News[], messages: PostMessage[]): void {
     db.transaction(() => {
         const deleteStmt = db.prepare(SQL.deleteLatestNews);
         deletions.forEach((n) => deleteStmt.run({ url: n.url }));
@@ -24,24 +26,41 @@ export function updateLatestNews(deletions: News[], updates: News[], newsEmbeds:
         const insertUpdateStmt = db.prepare(SQL.insertLatestNews);
         updates.forEach((n) => insertUpdateStmt.run(n));
 
-        db.exec(SQL.createTempNewsEmbeds);
-
-        const insertEmbedStmt = db.prepare(SQL.insertNewsEmbeds);
-        newsEmbeds.forEach((embeds) =>
-            insertEmbedStmt.run({
-                body: serialize<RESTPostAPIChannelMessageJSONBody>({ embeds }),
-                category: embeds[0].category,
+        const insertMsgStmt = db.prepare(SQL.insertPostMessages);
+        messages.forEach((m) =>
+            insertMsgStmt.run({
+                body: serialize<RESTPostAPIChannelMessageJSONBody>(m.body),
+                files: serialize<RawFile[]>(m.files),
+                category: m.category,
             })
         );
 
         db.exec(SQL.insertPendingNews);
-        db.exec(SQL.dropTempNewsEmbeds);
     })();
+}
+
+// List all post messages as a dictionary
+export function listPostMessages(): PostMessages {
+    const postMessages: PostMessages = {};
+    const serializedPostMessages = db.prepare(SQL.listPostMessages).all() as SerializedPostMessage[];
+
+    serializedPostMessages.forEach((m) => {
+        const body = deserialize<RESTPostAPIChannelMessageJSONBody>(m.body);
+        const files = deserialize<RawFile[]>(m.files).map((f) => ({ ...f, data: Buffer.from(f.data as string, 'hex') } as RawFile));
+        postMessages[m.id] = { body, files, category: m.category } as PostMessage;
+    });
+
+    return postMessages;
 }
 
 // If the oldest pending news has not been retrieved for more than 5 minutes, retrieve it and update its retrieval timestamp
 export function retrievePendingNews(): PendingNews {
     return db.prepare(SQL.retrievePendingNews).get() as PendingNews;
+}
+
+// Delete post message that does not be referenced by any pending news
+export function deletePostMessage(): void {
+    db.exec(SQL.deletePostMessage);
 }
 
 // Delete pending news
@@ -55,8 +74,11 @@ export function resetPendingNews(id: number): void {
 }
 
 // List subscribed categories of a channel
-export function listChannelSubscriptions(channelId: string): { category: string }[] {
-    return db.prepare(SQL.listChannelSubscriptions).all({ channelId }) as { category: string }[];
+export function listChannelSubscriptions(channelId: string): Category[] {
+    return db
+        .prepare(SQL.listChannelSubscriptions)
+        .all({ channelId })
+        .map((s) => s.category);
 }
 
 // Check if a channel is subscribed to any category

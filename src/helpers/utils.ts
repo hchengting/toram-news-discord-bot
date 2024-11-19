@@ -1,4 +1,4 @@
-export function logerror(error: unknown): void {
+export function logError(error: unknown): void {
     console.error(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), error);
 }
 

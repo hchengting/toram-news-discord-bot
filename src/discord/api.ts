@@ -1,8 +1,10 @@
+import type { RawFile } from '@discordjs/rest';
 import type {
-    APIApplicationCommand,
-    APIMessage,
+    RESTDeleteAPIChannelMessageResult,
     RESTPostAPIChannelMessageJSONBody,
+    RESTPostAPIChannelMessageResult,
     RESTPutAPIApplicationCommandsJSONBody,
+    RESTPutAPIApplicationCommandsResult,
 } from 'discord-api-types/v10';
 
 import { REST } from '@discordjs/rest';
@@ -15,22 +17,19 @@ const DISCORD_BOT_TOKEN = Deno.env.get('DISCORD_BOT_TOKEN');
 if (!DISCORD_BOT_TOKEN) throw new Error('Missing Discord bot token.');
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
-const options = { headers: { 'content-type': 'application/json' }, passThroughBody: true };
 
-export function registerCommands(body: RESTPutAPIApplicationCommandsJSONBody): Promise<APIApplicationCommand[]> {
-    return rest.put(Routes.applicationCommands(APPLICATION_ID!), { body }) as Promise<APIApplicationCommand[]>;
+export function registerCommands(body: RESTPutAPIApplicationCommandsJSONBody): Promise<RESTPutAPIApplicationCommandsResult> {
+    return rest.put(Routes.applicationCommands(APPLICATION_ID!), { body }) as Promise<RESTPutAPIApplicationCommandsResult>;
 }
 
-export function postChannelMessage(channelId: string, body: string): Promise<APIMessage>;
-export function postChannelMessage(channelId: string, body: RESTPostAPIChannelMessageJSONBody): Promise<APIMessage>;
-export function postChannelMessage(channelId: string, body: string | RESTPostAPIChannelMessageJSONBody): Promise<APIMessage> {
-    if (typeof body === 'string') {
-        return rest.post(Routes.channelMessages(channelId), { body, ...options }) as Promise<APIMessage>;
-    } else {
-        return rest.post(Routes.channelMessages(channelId), { body }) as Promise<APIMessage>;
-    }
+export function postChannelMessage(
+    channelId: string,
+    body: RESTPostAPIChannelMessageJSONBody,
+    files?: RawFile[]
+): Promise<RESTPostAPIChannelMessageResult> {
+    return rest.post(Routes.channelMessages(channelId), { body, files }) as Promise<RESTPostAPIChannelMessageResult>;
 }
 
-export function deleteChannelMessage(channelId: string, messageId: string): Promise<Record<PropertyKey, never>> {
-    return rest.delete(Routes.channelMessage(channelId, messageId)) as Promise<Record<PropertyKey, never>>;
+export function deleteChannelMessage(channelId: string, messageId: string): Promise<RESTDeleteAPIChannelMessageResult> {
+    return rest.delete(Routes.channelMessage(channelId, messageId)) as Promise<RESTDeleteAPIChannelMessageResult>;
 }

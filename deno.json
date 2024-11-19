@@ -1,7 +1,7 @@
 {
   "tasks": {
     "check": "deno check ./src/index.ts",
-    "dev": "deno run --env-file --allow-env --allow-net=0.0.0.0:3000,discord.com:443,tw.toram.jp:443 --allow-ffi --unstable-ffi ./src/index.ts"
+    "dev": "deno run --env-file --allow-env --allow-net=0.0.0.0:3000,discord.com:443,tw.toram.jp:443,toram-jp.akamaized.net:443 --allow-ffi --unstable-ffi ./src/index.ts"
   },
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
@@ -11,6 +11,7 @@
     "discord-api-types": "npm:discord-api-types@^0.37.104",
     "discord-interactions": "npm:discord-interactions@^4.1.0",
     "html-to-text": "npm:html-to-text@^9.0.5",
+    "sharp": "npm:sharp@^0.33.5",
     "~/": "./src/"
   },
   "compilerOptions": {

@@ -3,6 +3,12 @@ const SQL = {
     initializeDatabase: `
         PRAGMA journal_mode = WAL;
 
+        CREATE TABLE IF NOT EXISTS channel_subscriptions (
+            channel_id TEXT NOT NULL,
+            category TEXT NOT NULL,
+            PRIMARY KEY (channel_id, category)
+        );
+
         CREATE TABLE IF NOT EXISTS latest_news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
@@ -16,14 +22,16 @@ const SQL = {
         CREATE TABLE IF NOT EXISTS pending_news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id TEXT NOT NULL,
-            body TEXT NOT NULL,
-            retrieved_at NOT NULL DEFAULT 0
+            message_id TEXT NOT NULL,
+            retrieved_at NOT NULL DEFAULT 0,
+            FOREIGN KEY (message_id) REFERENCES post_messages(id)
         );
 
-        CREATE TABLE IF NOT EXISTS channel_subscriptions (
-            channel_id TEXT NOT NULL,
-            category TEXT NOT NULL,
-            PRIMARY KEY (channel_id, category)
+        CREATE TABLE IF NOT EXISTS post_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            body TEXT NOT NULL,
+            files TEXT NOT NULL,
+            category TEXT NOT NULL
         );
     `,
     listLatestNews: `
@@ -31,35 +39,37 @@ const SQL = {
         FROM latest_news
         ORDER BY id ASC;
     `,
-    deleteLatestNews: `
-        DELETE FROM latest_news
-        WHERE url = :url;
-    `,
     insertLatestNews: `
         INSERT INTO latest_news (date, category, title, url, thumbnail)
         VALUES (:date, :category, :title, :url, :thumbnail);
     `,
-    createTempNewsEmbeds: `
-        CREATE TABLE temp.news_embeds (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            body TEXT,
-            category TEXT
+    deleteLatestNews: `
+        DELETE FROM latest_news
+        WHERE url = :url;
+    `,
+    listPostMessages: `
+        SELECT *
+        FROM post_messages;
+    `,
+    insertPostMessages: `
+        INSERT INTO post_messages (body, files, category)
+        VALUES (:body, :files, :category);
+    `,
+    deletePostMessage: `
+        DELETE FROM post_messages
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM pending_news
+            WHERE message_id = post_messages.id
         );
     `,
-    insertNewsEmbeds: `
-        INSERT INTO temp.news_embeds (body, category)
-        VALUES (:body, :category);
-    `,
     insertPendingNews: `
-        INSERT INTO pending_news (channel_id, body)
-        SELECT channel_subscriptions.channel_id, temp.news_embeds.body
-        FROM temp.news_embeds
-        JOIN channel_subscriptions
-        ON temp.news_embeds.category = channel_subscriptions.category
-        ORDER BY temp.news_embeds.id ASC;
-    `,
-    dropTempNewsEmbeds: `
-        DROP TABLE temp.news_embeds;
+        INSERT INTO pending_news (channel_id, message_id)
+        SELECT channel_subscriptions.channel_id, post_messages.id
+        FROM channel_subscriptions
+        INNER JOIN post_messages
+        ON channel_subscriptions.category = post_messages.category
+        ORDER BY post_messages.id ASC;
     `,
     retrievePendingNews: `
         UPDATE pending_news
@@ -69,7 +79,12 @@ const SQL = {
             FROM pending_news
         )
         AND unixepoch() - retrieved_at > 300
-        RETURNING id, channel_id AS channelId, body;
+        RETURNING id, channel_id AS channelId, message_id AS messageId;
+    `,
+    resetPendingNews: `
+        UPDATE pending_news
+        SET retrieved_at = 0
+        WHERE id = :id;
     `,
     deletePendingNewsById: `
         DELETE FROM pending_news
@@ -79,23 +94,18 @@ const SQL = {
         DELETE FROM pending_news
         WHERE channel_id = :channelId;
     `,
-    resetPendingNews: `
-        UPDATE pending_news
-        SET retrieved_at = 0
-        WHERE id = :id;
-    `,
     listChannelSubscriptions: `
         SELECT category
         FROM channel_subscriptions
         WHERE channel_id = :channelId;
     `,
-    deleteChannelSubscriptions: `
-        DELETE FROM channel_subscriptions
-        WHERE channel_id = :channelId;
-    `,
     insertChannelSubscriptions: `
         INSERT INTO channel_subscriptions (channel_id, category)
         VALUES (:channelId, :category);
+    `,
+    deleteChannelSubscriptions: `
+        DELETE FROM channel_subscriptions
+        WHERE channel_id = :channelId;
     `,
 };
 

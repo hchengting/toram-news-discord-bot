@@ -1,10 +1,15 @@
+import type { RawFile } from '@discordjs/rest';
+
 import { DiscordAPIError } from '@discordjs/rest';
 import * as cheerio from 'cheerio';
 import { htmlToText } from 'html-to-text';
+import sharp from 'sharp';
 import {
     channelUnsubscribe,
     deletePendingNews,
+    deletePostMessage,
     listLatestNews,
+    listPostMessages,
     resetPendingNews,
     retrievePendingNews,
     updateLatestNews,
@@ -37,7 +42,7 @@ async function fetchNews(): Promise<News[]> {
 
                     return {
                         date: $el.find('time').attr('datetime') || '',
-                        category: getCategory($el.find('img').prop('src')) || '',
+                        category: getCategory($el.find('img').prop('src')),
                         title: $el.find('p.news_title').text() || '',
                         url: $el.find('a').prop('href') || '',
                         thumbnail: $el.find('img').prop('src') || '',
@@ -52,8 +57,45 @@ async function fetchNews(): Promise<News[]> {
     return news;
 }
 
-async function fetchNewsContent(news: News): Promise<Embed[]> {
-    const embeds: Embed[] = [];
+function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[] } {
+    const latestNews = listLatestNews();
+    const latestNewsSet = new Set(latestNews.map((n) => serialize<News>(n)));
+    const newsSet = new Set(news.map((n) => serialize<News>(n)));
+    const deletions = [...latestNewsSet.difference(newsSet)].map((n) => deserialize<News>(n));
+    const updates = [...newsSet.difference(latestNewsSet)].map((n) => deserialize<News>(n));
+
+    return { deletions, updates };
+}
+
+export async function fetchImage(src: string | undefined): Promise<RawFile> {
+    if (!src) return { data: '', name: '' };
+
+    const response = await fetch(src);
+
+    if (response.status !== 200) {
+        throw new Error(`Failed to fetch ${src}, status code: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const image = sharp(arrayBuffer);
+    const buffer = await image.resize(400).webp().toBuffer();
+    const data = buffer.toString('hex');
+    const name = `${new URL(src).pathname.split('/').pop()?.split('.')?.[0] || data.slice(0, 8)}.webp`;
+
+    return { data, name };
+}
+
+async function createPostMessage(news: News): Promise<PostMessage> {
+    const message: PostMessage = {
+        body: {
+            embeds: [],
+            attachments: [],
+        },
+        files: [await fetchImage(news.thumbnail)],
+        category: news.category,
+    };
+
+    // Fetch news content
     const response = await fetch(news.url, { headers });
 
     if (response.status !== 200) {
@@ -99,7 +141,7 @@ async function fetchNewsContent(news: News): Promise<Embed[]> {
         const $section = $contents.slice(sectionIndexs[i] + 1, sectionIndexs[i + 1]);
         const title = i === 0 ? news.title : $deluxeTitles.eq(i - 1).text();
         const url = i === 0 ? news.url : `${news.url}#${$deluxeTitles.eq(i - 1).attr('id')}`;
-        const thumbnail = i === 0 ? { url: news.thumbnail } : undefined;
+        const thumbnail = i === 0 ? { url: `attachment://${message.files[0].name}` } : undefined;
 
         // Convert section html to text
         const description = htmlToText($.html($section), {
@@ -121,87 +163,93 @@ async function fetchNewsContent(news: News): Promise<Embed[]> {
             ],
         }).replace(/\n{3,}/g, '\n\n');
 
-        // Extract images from this section
-        const images = $section
-            .find('img')
-            .map((_i, el) => ({ url: $(el).prop('src') || '' }))
-            .toArray();
+        // Fetch images from this section
+        const images = $section.find('img').toArray();
+        const imageFiles = await Promise.all(images.map((el) => fetchImage($(el).prop('src'))));
+        message.files.push(...imageFiles);
 
-        embeds.push({
+        message.body.embeds.push({
             title: title.slice(0, 128),
             url,
             thumbnail,
             description: description.slice(0, 2048),
-            image: images.shift(),
-            category: news.category,
+            image: imageFiles.length ? { url: `attachment://${imageFiles.shift()!.name}` } : undefined,
         });
 
-        embeds.push(...images.map((image) => ({ url, image, category: news.category })));
+        message.body.embeds.push(...imageFiles.map((img) => ({ url, image: { url: `attachment://${img.name}` } })));
     }
 
-    return embeds;
+    return message;
 }
 
-function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[] } {
-    const latestNews = listLatestNews();
-    const latestNewsSet = new Set(latestNews.map((n) => serialize<News>(n)));
-    const newsSet = new Set(news.map((n) => serialize<News>(n)));
+// Split message into smaller chunks to follow Discord embeds, files, and character limits
+function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
+    const maxEmbeds = 10;
+    const maxFiles = 10;
+    const maxChars = 3000;
+    const embeds = message.body.embeds;
 
-    return {
-        deletions: [...latestNewsSet.difference(newsSet)].map((n) => deserialize<News>(n)),
-        updates: [...newsSet.difference(latestNewsSet)].map((n) => deserialize<News>(n)),
-    };
-}
+    for (let start = 0, fileStart = 0; start < embeds.length; ) {
+        let totalChars = 0;
+        let end = start;
+        let fileEnd = fileStart;
 
-async function generateNewsEmbeds(updates: News[]): Promise<Embed[][]> {
-    const newsEmbeds = await Promise.all(updates.map(fetchNewsContent));
+        while (end < embeds.length && end - start < maxEmbeds && fileEnd - fileStart < maxFiles) {
+            const embed = embeds[end];
+            const chars = (embed.title?.length || 0) + (embed.description?.length || 0);
 
-    function* chunks(embeds: Embed[]): Iterable<Embed[]> {
-        const maxEmbeds = 10;
-        const maxChars = 3000;
+            if (totalChars + chars > maxChars) break;
 
-        for (let i = 0; i < embeds.length; ) {
-            let totalChars = 0;
-            let j = i;
+            totalChars += chars;
+            end++;
 
-            while (j < embeds.length && j - i < maxEmbeds) {
-                const embed = embeds[j];
-                const chars = (embed.title?.length || 0) + (embed.description?.length || 0);
-
-                if (totalChars + chars > maxChars) break;
-
-                totalChars += chars;
-                j++;
-            }
-
-            yield embeds.slice(i, j);
-            i = j;
+            if (embed.thumbnail) fileEnd++;
+            if (embed.image) fileEnd++;
         }
-    }
 
-    // Split into smaller chunks to follow Discord embeds limit
-    return newsEmbeds.flatMap((embeds) => [...chunks(embeds)]);
+        const files = message.files.slice(fileStart, fileEnd);
+        const attachments = files.map((_f, i) => ({ id: i }));
+
+        yield {
+            body: {
+                embeds: embeds.slice(start, end),
+                attachments,
+            },
+            files,
+            category: message.category,
+        };
+
+        start = end;
+        fileStart = fileEnd;
+    }
 }
 
 async function sendPendingNews(): Promise<void> {
+    const postMessages = listPostMessages();
+
     while (true) {
-        const news = retrievePendingNews();
-        if (!news) break;
+        const pendingNews = retrievePendingNews();
+        if (!pendingNews) break;
+
+        const { id, channelId, messageId } = pendingNews;
+        const { body, files } = postMessages[messageId];
 
         try {
-            await postChannelMessage(news.channelId, news.body);
-            deletePendingNews(news.id);
+            await postChannelMessage(channelId, body, files);
+            deletePendingNews(id);
         } catch (error) {
-            resetPendingNews(news.id);
+            resetPendingNews(id);
 
             // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
             if (['50001', '50013', '10003'].includes((error as DiscordAPIError).code.toString())) {
-                channelUnsubscribe(news.channelId);
+                channelUnsubscribe(channelId);
             } else {
                 throw error;
             }
         }
     }
+
+    deletePostMessage();
 }
 
 // Fetch latest news and send to Discord
@@ -210,8 +258,10 @@ export default async function handleSchedule(): Promise<void> {
     const { deletions, updates } = checkNewsDifference(news);
 
     if (updates.length) {
-        const newsEmbeds = await generateNewsEmbeds(updates);
-        updateLatestNews(deletions, updates, newsEmbeds);
+        const messageUpdates = await Promise.all(updates.map(createPostMessage));
+        const messageChunks = messageUpdates.flatMap((message) => [...splitMessageChunks(message)]);
+
+        updateLatestNews(deletions, updates, messageChunks);
     }
 
     await sendPendingNews();

@@ -66,7 +66,7 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
     switch (interaction.data.name) {
         // deno-lint-ignore no-case-declarations
         case commands.LIST.name:
-            const subscribedCategories = listChannelSubscriptions(channelId).map((s) => s.category as Category);
+            const subscribedCategories = listChannelSubscriptions(channelId);
             const values = sortCategories(subscribedCategories);
 
             if (!values.length) {
