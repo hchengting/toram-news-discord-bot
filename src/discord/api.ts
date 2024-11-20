@@ -4,6 +4,7 @@ import type {
     RESTPostAPIChannelMessageResult,
     RESTPutAPIApplicationCommandsJSONBody,
     RESTPutAPIApplicationCommandsResult,
+    Snowflake,
 } from 'discord-api-types/v10';
 
 import { REST } from '@discordjs/rest';
@@ -21,10 +22,13 @@ export function registerCommands(body: RESTPutAPIApplicationCommandsJSONBody): P
     return rest.put(Routes.applicationCommands(APPLICATION_ID!), { body }) as Promise<RESTPutAPIApplicationCommandsResult>;
 }
 
-export function postChannelMessage(channelId: string, body: RESTPostAPIChannelMessageJSONBody): Promise<RESTPostAPIChannelMessageResult> {
+export function postChannelMessage(
+    channelId: Snowflake,
+    body: RESTPostAPIChannelMessageJSONBody
+): Promise<RESTPostAPIChannelMessageResult> {
     return rest.post(Routes.channelMessages(channelId), { body }) as Promise<RESTPostAPIChannelMessageResult>;
 }
 
-export function deleteChannelMessage(channelId: string, messageId: string): Promise<RESTDeleteAPIChannelMessageResult> {
+export function deleteChannelMessage(channelId: Snowflake, messageId: Snowflake): Promise<RESTDeleteAPIChannelMessageResult> {
     return rest.delete(Routes.channelMessage(channelId, messageId)) as Promise<RESTDeleteAPIChannelMessageResult>;
 }

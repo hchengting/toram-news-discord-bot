@@ -19,18 +19,23 @@ const SQL = {
             UNIQUE (date, category, title, url, thumbnail)
         );
 
+        CREATE TABLE IF NOT EXISTS update_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            body TEXT NOT NULL,
+            category TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS post_messages (
+            id INTEGER PRIMARY KEY,
+            body TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS pending_news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id TEXT NOT NULL,
             message_id TEXT NOT NULL,
             retrieved_at NOT NULL DEFAULT 0,
             FOREIGN KEY (message_id) REFERENCES post_messages(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS post_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            body TEXT NOT NULL,
-            category TEXT NOT NULL
         );
     `,
     listLatestNews: `
@@ -46,13 +51,21 @@ const SQL = {
         DELETE FROM latest_news
         WHERE url = :url;
     `,
+    insertUpdateMessages: `
+        INSERT INTO update_messages (body, category)
+        VALUES (:body, :category);
+    `,
+    deleteUpdateMessages: `
+        DELETE FROM update_messages;
+    `,
     listPostMessages: `
         SELECT *
         FROM post_messages;
     `,
     insertPostMessages: `
-        INSERT INTO post_messages (body, category)
-        VALUES (:body, :category);
+        INSERT INTO post_messages (id, body)
+        SELECT id, body
+        FROM update_messages;
     `,
     deletePostMessages: `
         DELETE FROM post_messages
@@ -64,11 +77,11 @@ const SQL = {
     `,
     insertPendingNews: `
         INSERT INTO pending_news (channel_id, message_id)
-        SELECT channel_subscriptions.channel_id, post_messages.id
+        SELECT channel_subscriptions.channel_id, update_messages.id
         FROM channel_subscriptions
-        INNER JOIN post_messages
-        ON channel_subscriptions.category = post_messages.category
-        ORDER BY post_messages.id ASC;
+        INNER JOIN update_messages
+        ON channel_subscriptions.category = update_messages.category
+        ORDER BY update_messages.id ASC;
     `,
     retrievePendingNews: `
         UPDATE pending_news

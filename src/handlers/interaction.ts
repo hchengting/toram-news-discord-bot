@@ -2,6 +2,7 @@ import type {
     APIChatInputApplicationCommandInteraction,
     APIInteractionResponse,
     APIMessageComponentSelectMenuInteraction,
+    Snowflake,
 } from 'discord-api-types/v10';
 import type { Interaction, InteractionResponseParams, VerifyInteraction } from '~/types/interaction.d.ts';
 
@@ -42,7 +43,7 @@ async function verifyInteraction(request: Request): Promise<VerifyInteraction> {
     }
 }
 
-async function checkBotPermission(channelId: string): Promise<boolean> {
+async function checkBotPermission(channelId: Snowflake): Promise<boolean> {
     try {
         const message = await postChannelMessage(channelId, {
             embeds: [{ title: '處理中', description: '請稍後...', url: 'https://discord.com' }],

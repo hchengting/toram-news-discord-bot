@@ -1,4 +1,4 @@
-import type { RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
+import type { Snowflake } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
 import SQL from '~/db/sql.ts';
@@ -24,15 +24,17 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
         const insertUpdateStmt = db.prepare(SQL.insertLatestNews);
         updates.forEach((n) => insertUpdateStmt.run(n));
 
-        const insertMsgStmt = db.prepare(SQL.insertPostMessages);
+        const insertMsgStmt = db.prepare(SQL.insertUpdateMessages);
         messages.forEach((m) =>
             insertMsgStmt.run({
-                body: serialize<RESTPostAPIChannelMessageJSONBody>(m.body),
+                body: serialize<PostMessageBody>(m.body),
                 category: m.category,
             })
         );
 
+        db.exec(SQL.insertPostMessages);
         db.exec(SQL.insertPendingNews);
+        db.exec(SQL.deleteUpdateMessages);
     })();
 }
 
@@ -42,8 +44,8 @@ export function listPostMessages(): PostMessages {
     const serializedPostMessages = db.prepare(SQL.listPostMessages).all() as SerializedPostMessage[];
 
     serializedPostMessages.forEach((m) => {
-        const body = deserialize<RESTPostAPIChannelMessageJSONBody>(m.body);
-        postMessages[m.id] = { body, category: m.category } as PostMessage;
+        const body = deserialize<PostMessageBody>(m.body);
+        postMessages[m.id] = { body };
     });
 
     return postMessages;
@@ -70,7 +72,7 @@ export function deletePostMessages(): void {
 }
 
 // List subscribed categories of a channel
-export function listChannelSubscriptions(channelId: string): Category[] {
+export function listChannelSubscriptions(channelId: Snowflake): Category[] {
     return db
         .prepare(SQL.listChannelSubscriptions)
         .all({ channelId })
@@ -78,12 +80,12 @@ export function listChannelSubscriptions(channelId: string): Category[] {
 }
 
 // Check if a channel is subscribed to any category
-export function isChannelSubscribed(channelId: string): boolean {
+export function isChannelSubscribed(channelId: Snowflake): boolean {
     return !!db.prepare(SQL.listChannelSubscriptions).get({ channelId });
 }
 
 // Delete channel from pending news and channel subscriptions
-export function channelUnsubscribe(channelId: string): void {
+export function channelUnsubscribe(channelId: Snowflake): void {
     db.transaction(() => {
         db.prepare(SQL.deletePendingNewsByChannelId).run({ channelId });
         db.prepare(SQL.deleteChannelSubscriptions).run({ channelId });
@@ -91,7 +93,7 @@ export function channelUnsubscribe(channelId: string): void {
 }
 
 // Delete channel from pending news and channel subscriptions, and insert channel subscriptions with new categories
-export function channelSubscribe(channelId: string, categories: Category[]): void {
+export function channelSubscribe(channelId: Snowflake, categories: Category[]): void {
     db.transaction(() => {
         db.prepare(SQL.deletePendingNewsByChannelId).run({ channelId });
         db.prepare(SQL.deleteChannelSubscriptions).run({ channelId });
