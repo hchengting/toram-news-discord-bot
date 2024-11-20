@@ -1,5 +1,3 @@
-import type { RawFile } from '@discordjs/rest';
-
 import { DiscordAPIError } from '@discordjs/rest';
 import * as cheerio from 'cheerio';
 import { htmlToText } from 'html-to-text';
@@ -67,8 +65,8 @@ function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[]
     return { deletions, updates };
 }
 
-export async function fetchImage(src: string | undefined): Promise<RawFile> {
-    if (!src) return { data: '', name: '' };
+export async function fetchImage(src: string | undefined): Promise<ImageFile> {
+    if (!src) return { file: { data: '', name: '' } };
 
     const response = await fetch(src);
 
@@ -78,11 +76,13 @@ export async function fetchImage(src: string | undefined): Promise<RawFile> {
 
     const arrayBuffer = await response.arrayBuffer();
     const image = sharp(arrayBuffer);
-    const buffer = await image.resize(400).webp().toBuffer();
+    const { width, height } = await image.metadata();
+    const resizeWidth = Math.min(400, width || 400);
+    const buffer = await image.resize(resizeWidth).webp().toBuffer();
     const data = buffer.toString('hex');
     const name = `${new URL(src).pathname.split('/').pop()?.split('.')?.[0] || data.slice(0, 8)}.webp`;
 
-    return { data, name };
+    return { file: { data, name }, width, height };
 }
 
 async function createPostMessage(news: News): Promise<PostMessage> {
@@ -91,9 +91,14 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             embeds: [],
             attachments: [],
         },
-        files: [await fetchImage(news.thumbnail)],
+        files: [],
         category: news.category,
     };
+
+    // Fetch thumbnail image
+    const thumbnail = await fetchImage(news.thumbnail);
+    const thumbnailEmbed = { url: `attachment://${thumbnail.file.name}`, width: thumbnail.width, height: thumbnail.height };
+    message.files.push(thumbnail.file);
 
     // Fetch news content
     const response = await fetch(news.url, { headers });
@@ -141,7 +146,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         const $section = $contents.slice(sectionIndexs[i] + 1, sectionIndexs[i + 1]);
         const title = i === 0 ? news.title : $deluxeTitles.eq(i - 1).text();
         const url = i === 0 ? news.url : `${news.url}#${$deluxeTitles.eq(i - 1).attr('id')}`;
-        const thumbnail = i === 0 ? { url: `attachment://${message.files[0].name}` } : undefined;
+        const thumbnail = i === 0 ? thumbnailEmbed : undefined;
 
         // Convert section html to text
         const description = htmlToText($.html($section), {
@@ -164,19 +169,28 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         }).replace(/\n{3,}/g, '\n\n');
 
         // Fetch images from this section
-        const images = $section.find('img').toArray();
-        const imageFiles = await Promise.all(images.map((el) => fetchImage($(el).prop('src'))));
-        message.files.push(...imageFiles);
+        const images = await Promise.all(
+            $section
+                .find('img')
+                .toArray()
+                .map((el) => fetchImage($(el).prop('src')))
+        );
+        const imageEmbeds = images.map((img) => ({ url: `attachment://${img.file.name}`, width: img.width, height: img.height }));
 
+        // Add images to files
+        message.files.push(...images.map((img) => img.file));
+
+        // Add section data and first image to embeds
         message.body.embeds.push({
             title: title.slice(0, 128),
             url,
             thumbnail,
             description: description.slice(0, 2048),
-            image: imageFiles.length ? { url: `attachment://${imageFiles.shift()!.name}` } : undefined,
+            image: imageEmbeds.shift(),
         });
 
-        message.body.embeds.push(...imageFiles.map((img) => ({ url, image: { url: `attachment://${img.name}` } })));
+        // Add remaining images to embeds using same url to display as gallery
+        message.body.embeds.push(...imageEmbeds.map((img) => ({ url, image: img })));
     }
 
     return message;

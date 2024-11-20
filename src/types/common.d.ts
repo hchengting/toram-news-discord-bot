@@ -1,5 +1,11 @@
 type Category = '商城' | '活動' | '更新' | '維修' | '重要' | 'BUG';
 
+type ImageFile = {
+    file: import('@discordjs/rest').RawFile;
+    width?: number;
+    height?: number;
+};
+
 type News = {
     date: string;
     category?: Category;
