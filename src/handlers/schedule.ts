@@ -1,7 +1,7 @@
 import { DiscordAPIError } from '@discordjs/rest';
 import * as cheerio from 'cheerio';
 import { htmlToText } from 'html-to-text';
-import sharp from 'sharp';
+import { getImageInfo } from 'jsr:@retraigo/image-size';
 import {
     channelUnsubscribe,
     deletePendingNews,
@@ -55,7 +55,7 @@ async function fetchNews(): Promise<News[]> {
     return news;
 }
 
-function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[] } {
+function checkNewsDifference(news: News[]): NewsDifference {
     const latestNews = listLatestNews();
     const latestNewsSet = new Set(latestNews.map((n) => serialize<News>(n)));
     const newsSet = new Set(news.map((n) => serialize<News>(n)));
@@ -65,24 +65,17 @@ function checkNewsDifference(news: News[]): { deletions: News[]; updates: News[]
     return { deletions, updates };
 }
 
-export async function fetchImage(src: string | undefined): Promise<ImageFile> {
-    if (!src) return { file: { data: '', name: '' } };
+async function fetchImageSize(src: string): Promise<ImageSize> {
+    if (!src) return { width: 0, height: 0 };
 
     const response = await fetch(src);
-
-    if (response.status !== 200) {
-        throw new Error(`Failed to fetch ${src}, status code: ${response.status}`);
-    }
+    if (response.status !== 200) return { width: 0, height: 0 };
 
     const arrayBuffer = await response.arrayBuffer();
-    const image = sharp(arrayBuffer);
-    const { width, height } = await image.metadata();
-    const resizeWidth = Math.min(400, width || 400);
-    const buffer = await image.resize(resizeWidth).webp().toBuffer();
-    const data = buffer.toString('hex');
-    const name = `${new URL(src).pathname.split('/').pop()?.split('.')?.[0] || data.slice(0, 8)}.webp`;
+    const { width, height } = getImageInfo(new Uint8Array(arrayBuffer));
+    console.log(`Image size: ${width}x${height} - ${src}`);
 
-    return { file: { data, name }, width, height };
+    return { width, height };
 }
 
 async function createPostMessage(news: News): Promise<PostMessage> {
@@ -95,10 +88,9 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         category: news.category,
     };
 
-    // Fetch thumbnail image
-    const thumbnail = await fetchImage(news.thumbnail);
-    const thumbnailEmbed = { url: `attachment://${thumbnail.file.name}`, width: thumbnail.width, height: thumbnail.height };
-    message.files.push(thumbnail.file);
+    // Fetch thumbnail image size
+    const thumbnail = await fetchImageSize(news.thumbnail);
+    const embedThumbnail = { url: news.thumbnail, width: thumbnail.width, height: thumbnail.height };
 
     // Fetch news content
     const response = await fetch(news.url, { headers });
@@ -146,7 +138,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         const $section = $contents.slice(sectionIndexs[i] + 1, sectionIndexs[i + 1]);
         const title = i === 0 ? news.title : $deluxeTitles.eq(i - 1).text();
         const url = i === 0 ? news.url : `${news.url}#${$deluxeTitles.eq(i - 1).attr('id')}`;
-        const thumbnail = i === 0 ? thumbnailEmbed : undefined;
+        const thumbnail = i === 0 ? embedThumbnail : undefined;
 
         // Convert section html to text
         const description = htmlToText($.html($section), {
@@ -168,17 +160,16 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             ],
         }).replace(/\n{3,}/g, '\n\n');
 
-        // Fetch images from this section
-        const images = await Promise.all(
-            $section
-                .find('img')
-                .toArray()
-                .map((el) => fetchImage($(el).prop('src')))
-        );
-        const imageEmbeds = images.map((img) => ({ url: `attachment://${img.file.name}`, width: img.width, height: img.height }));
+        // Fetch images size from this section
+        const images = $section.find('img').toArray();
+        const embedImages = await Promise.all(
+            images.map(async (el) => {
+                const url = $(el).prop('src') || '';
+                const { width, height } = await fetchImageSize(url);
 
-        // Add images to files
-        message.files.push(...images.map((img) => img.file));
+                return { url, width, height };
+            })
+        );
 
         // Add section data and first image to embeds
         message.body.embeds.push({
@@ -186,11 +177,11 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             url,
             thumbnail,
             description: description.slice(0, 2048),
-            image: imageEmbeds.shift(),
+            image: embedImages.shift(),
         });
 
         // Add remaining images to embeds using same url to display as gallery
-        message.body.embeds.push(...imageEmbeds.map((img) => ({ url, image: img })));
+        message.body.embeds.push(...embedImages.map((img) => ({ url, image: img })));
     }
 
     return message;
@@ -217,8 +208,8 @@ function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
             totalChars += chars;
             end++;
 
-            if (embed.thumbnail) fileEnd++;
-            if (embed.image) fileEnd++;
+            // if (embed.thumbnail) fileEnd++;
+            // if (embed.image) fileEnd++;
         }
 
         const files = message.files.slice(fileStart, fileEnd);
