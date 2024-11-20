@@ -30,7 +30,6 @@ const SQL = {
         CREATE TABLE IF NOT EXISTS post_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             body TEXT NOT NULL,
-            files TEXT NOT NULL,
             category TEXT NOT NULL
         );
     `,
@@ -52,10 +51,10 @@ const SQL = {
         FROM post_messages;
     `,
     insertPostMessages: `
-        INSERT INTO post_messages (body, files, category)
-        VALUES (:body, :files, :category);
+        INSERT INTO post_messages (body, category)
+        VALUES (:body, :category);
     `,
-    deletePostMessage: `
+    deletePostMessages: `
         DELETE FROM post_messages
         WHERE NOT EXISTS (
             SELECT 1

@@ -1,4 +1,3 @@
-import type { RawFile } from '@discordjs/rest';
 import type {
     RESTDeleteAPIChannelMessageResult,
     RESTPostAPIChannelMessageJSONBody,
@@ -22,12 +21,8 @@ export function registerCommands(body: RESTPutAPIApplicationCommandsJSONBody): P
     return rest.put(Routes.applicationCommands(APPLICATION_ID!), { body }) as Promise<RESTPutAPIApplicationCommandsResult>;
 }
 
-export function postChannelMessage(
-    channelId: string,
-    body: RESTPostAPIChannelMessageJSONBody,
-    files?: RawFile[]
-): Promise<RESTPostAPIChannelMessageResult> {
-    return rest.post(Routes.channelMessages(channelId), { body, files }) as Promise<RESTPostAPIChannelMessageResult>;
+export function postChannelMessage(channelId: string, body: RESTPostAPIChannelMessageJSONBody): Promise<RESTPostAPIChannelMessageResult> {
+    return rest.post(Routes.channelMessages(channelId), { body }) as Promise<RESTPostAPIChannelMessageResult>;
 }
 
 export function deleteChannelMessage(channelId: string, messageId: string): Promise<RESTDeleteAPIChannelMessageResult> {

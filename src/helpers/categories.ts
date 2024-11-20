@@ -1,4 +1,4 @@
-const categoryDict: Partial<Record<string, Category>> = {
+const categoryMap: Partial<Record<string, Category>> = {
     'other': '商城',
     'event': '活動',
     'update': '更新',
@@ -7,7 +7,7 @@ const categoryDict: Partial<Record<string, Category>> = {
     'defect': 'BUG',
 };
 
-export const categories = Object.values(categoryDict) as Category[];
+export const categories = Object.values(categoryMap) as Category[];
 
 export const componentOptions = [
     { label: '商城', description: '造型裝備、露珠道具、露珠增值等相關內容', value: '商城' },
@@ -18,9 +18,9 @@ export const componentOptions = [
     { label: 'BUG', description: '遊戲內容錯誤、系統錯誤、操作錯誤等相關內容', value: 'BUG' },
 ];
 
-export function getCategory(thumbnail: string | undefined): Category | undefined {
-    const key = thumbnail?.match(/(?<=icon_news_)\w+(?=\.png)/)?.[0] || '';
-    return categoryDict[key];
+export function getCategory(thumbnail: string): Category {
+    const key = thumbnail?.match(/(?<=icon_news_)\w+(?=\.png)/)?.[0];
+    return key ? categoryMap[key] || '' : '';
 }
 
 export function sortCategories(values: Category[]): Category[] {

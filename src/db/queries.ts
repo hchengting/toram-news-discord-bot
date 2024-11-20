@@ -1,8 +1,6 @@
-import type { RawFile } from '@discordjs/rest';
 import type { RESTPostAPIChannelMessageJSONBody } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
-import { Buffer } from 'node:buffer';
 import SQL from '~/db/sql.ts';
 import { deserialize, serialize } from '~/helpers/utils.ts';
 
@@ -30,7 +28,6 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
         messages.forEach((m) =>
             insertMsgStmt.run({
                 body: serialize<RESTPostAPIChannelMessageJSONBody>(m.body),
-                files: serialize<RawFile[]>(m.files),
                 category: m.category,
             })
         );
@@ -39,15 +36,14 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
     })();
 }
 
-// List all post messages as a dictionary
+// List all post messages using their ids as keys
 export function listPostMessages(): PostMessages {
     const postMessages: PostMessages = {};
     const serializedPostMessages = db.prepare(SQL.listPostMessages).all() as SerializedPostMessage[];
 
     serializedPostMessages.forEach((m) => {
         const body = deserialize<RESTPostAPIChannelMessageJSONBody>(m.body);
-        const files = deserialize<RawFile[]>(m.files).map((f) => ({ ...f, data: Buffer.from(f.data as string, 'hex') } as RawFile));
-        postMessages[m.id] = { body, files, category: m.category } as PostMessage;
+        postMessages[m.id] = { body, category: m.category } as PostMessage;
     });
 
     return postMessages;
@@ -58,11 +54,6 @@ export function retrievePendingNews(): PendingNews {
     return db.prepare(SQL.retrievePendingNews).get() as PendingNews;
 }
 
-// Delete post message that does not be referenced by any pending news
-export function deletePostMessage(): void {
-    db.exec(SQL.deletePostMessage);
-}
-
 // Delete pending news
 export function deletePendingNews(id: number): void {
     db.prepare(SQL.deletePendingNewsById).run({ id });
@@ -71,6 +62,11 @@ export function deletePendingNews(id: number): void {
 // Reset pending news retrieval timestamp
 export function resetPendingNews(id: number): void {
     db.prepare(SQL.resetPendingNews).run({ id });
+}
+
+// Delete post messages that do not be referenced by any pending news
+export function deletePostMessages(): void {
+    db.exec(SQL.deletePostMessages);
 }
 
 // List subscribed categories of a channel

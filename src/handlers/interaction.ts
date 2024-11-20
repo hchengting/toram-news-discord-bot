@@ -57,6 +57,7 @@ async function checkBotPermission(channelId: string): Promise<boolean> {
 function interactionResponse(params: InteractionResponseParams): Response {
     const { content, components, type = InteractionResponseType.ChannelMessageWithSource } = params;
     const body = serialize<APIInteractionResponse>({ data: { content, components }, type });
+
     return new Response(body, { headers: { 'content-type': 'application/json' } });
 }
 

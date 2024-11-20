@@ -5,7 +5,7 @@ import { getImageInfo } from 'jsr:@retraigo/image-size';
 import {
     channelUnsubscribe,
     deletePendingNews,
-    deletePostMessage,
+    deletePostMessages,
     listLatestNews,
     listPostMessages,
     resetPendingNews,
@@ -40,7 +40,7 @@ async function fetchNews(): Promise<News[]> {
 
                     return {
                         date: $el.find('time').attr('datetime') || '',
-                        category: getCategory($el.find('img').prop('src')),
+                        category: getCategory($el.find('img').prop('src') || ''),
                         title: $el.find('p.news_title').text() || '',
                         url: $el.find('a').prop('href') || '',
                         thumbnail: $el.find('img').prop('src') || '',
@@ -73,6 +73,7 @@ async function fetchImageSize(src: string): Promise<ImageSize> {
 
     const arrayBuffer = await response.arrayBuffer();
     const { width, height } = getImageInfo(new Uint8Array(arrayBuffer));
+
     console.log(`Image size: ${width}x${height} - ${src}`);
 
     return { width, height };
@@ -82,9 +83,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
     const message: PostMessage = {
         body: {
             embeds: [],
-            attachments: [],
         },
-        files: [],
         category: news.category,
     };
 
@@ -160,7 +159,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             ],
         }).replace(/\n{3,}/g, '\n\n');
 
-        // Fetch images size from this section
+        // Extract images from this section and fetch their sizes
         const images = $section.find('img').toArray();
         const embedImages = await Promise.all(
             images.map(async (el) => {
@@ -171,7 +170,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             })
         );
 
-        // Add section data and first image to embeds
+        // Add section data and the first image to embeds
         message.body.embeds.push({
             title: title.slice(0, 128),
             url,
@@ -187,19 +186,17 @@ async function createPostMessage(news: News): Promise<PostMessage> {
     return message;
 }
 
-// Split message into smaller chunks to follow Discord embeds, files, and character limits
+// Split message into smaller chunks to follow Discord embeds and character limits
 function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
     const maxEmbeds = 10;
-    const maxFiles = 10;
     const maxChars = 3000;
     const embeds = message.body.embeds;
 
-    for (let start = 0, fileStart = 0; start < embeds.length; ) {
+    for (let start = 0; start < embeds.length; ) {
         let totalChars = 0;
         let end = start;
-        let fileEnd = fileStart;
 
-        while (end < embeds.length && end - start < maxEmbeds && fileEnd - fileStart < maxFiles) {
+        while (end < embeds.length && end - start < maxEmbeds) {
             const embed = embeds[end];
             const chars = (embed.title?.length || 0) + (embed.description?.length || 0);
 
@@ -207,25 +204,16 @@ function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
 
             totalChars += chars;
             end++;
-
-            // if (embed.thumbnail) fileEnd++;
-            // if (embed.image) fileEnd++;
         }
-
-        const files = message.files.slice(fileStart, fileEnd);
-        const attachments = files.map((_f, i) => ({ id: i }));
 
         yield {
             body: {
                 embeds: embeds.slice(start, end),
-                attachments,
             },
-            files,
             category: message.category,
         };
 
         start = end;
-        fileStart = fileEnd;
     }
 }
 
@@ -237,10 +225,10 @@ async function sendPendingNews(): Promise<void> {
         if (!pendingNews) break;
 
         const { id, channelId, messageId } = pendingNews;
-        const { body, files } = postMessages[messageId];
+        const { body } = postMessages[messageId];
 
         try {
-            await postChannelMessage(channelId, body, files);
+            await postChannelMessage(channelId, body);
             deletePendingNews(id);
         } catch (error) {
             resetPendingNews(id);
@@ -254,7 +242,7 @@ async function sendPendingNews(): Promise<void> {
         }
     }
 
-    deletePostMessage();
+    deletePostMessages();
 }
 
 // Fetch latest news and send to Discord
