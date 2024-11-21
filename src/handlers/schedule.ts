@@ -68,10 +68,30 @@ function checkNewsDifference(news: News[]): NewsDifference {
 async function fetchImageSize(src: string): Promise<ImageSize> {
     if (!src) return {};
 
-    const response = await fetch(src);
-    if (response.status !== 200) return {};
+    const response = await fetch(src, { headers });
+    if (response.status !== 200 || !response.body) return {};
 
-    return getImageInfo(new Uint8Array(await response.arrayBuffer()));
+    const reader = response.body.getReader();
+    let chunks = new Uint8Array();
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const newChunks = new Uint8Array(chunks.length + value.length);
+        newChunks.set(chunks);
+        newChunks.set(value, chunks.length);
+        chunks = newChunks;
+
+        const info = getImageInfo(chunks);
+
+        if (info.width && info.height) {
+            await reader.cancel();
+            return info;
+        }
+    }
+
+    return getImageInfo(chunks);
 }
 
 async function createPostMessage(news: News): Promise<PostMessage> {
