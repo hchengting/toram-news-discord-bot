@@ -30,7 +30,7 @@ const SQL = {
             body TEXT NOT NULL
         );
 
-        CREATE TABLE IF NOT EXISTS pending_news (
+        CREATE TABLE IF NOT EXISTS pending_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id TEXT NOT NULL,
             message_id TEXT NOT NULL,
@@ -71,39 +71,39 @@ const SQL = {
         DELETE FROM post_messages
         WHERE NOT EXISTS (
             SELECT 1
-            FROM pending_news
+            FROM pending_messages
             WHERE message_id = post_messages.id
         );
     `,
-    insertPendingNews: `
-        INSERT INTO pending_news (channel_id, message_id)
+    insertPendingMessages: `
+        INSERT INTO pending_messages (channel_id, message_id)
         SELECT channel_subscriptions.channel_id, update_messages.id
         FROM channel_subscriptions
         INNER JOIN update_messages
         ON channel_subscriptions.category = update_messages.category
         ORDER BY update_messages.id ASC;
     `,
-    retrievePendingNews: `
-        UPDATE pending_news
+    retrievePendingMessage: `
+        UPDATE pending_messages
         SET retrieved_at = unixepoch()
         WHERE id = (
             SELECT MIN(id)
-            FROM pending_news
+            FROM pending_messages
         )
         AND unixepoch() - retrieved_at > 300
         RETURNING id, channel_id AS channelId, message_id AS messageId;
     `,
-    resetPendingNews: `
-        UPDATE pending_news
+    resetPendingMessage: `
+        UPDATE pending_messages
         SET retrieved_at = 0
         WHERE id = :id;
     `,
-    deletePendingNewsById: `
-        DELETE FROM pending_news
+    deletePendingMessage: `
+        DELETE FROM pending_messages
         WHERE id = :id;
     `,
-    deletePendingNewsByChannelId: `
-        DELETE FROM pending_news
+    deletePendingMessagesByChannelId: `
+        DELETE FROM pending_messages
         WHERE channel_id = :channelId;
     `,
     listChannelSubscriptions: `

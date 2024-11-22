@@ -15,7 +15,7 @@ export function listLatestNews(): News[] {
     return db.prepare(SQL.listLatestNews).all() as News[];
 }
 
-// Update latest news and insert pending news based on categories subscribed by each channel
+// Update latest news and insert pending messages based on categories subscribed by each channel
 export function updateLatestNews(deletions: News[], updates: News[], messages: PostMessage[]): void {
     db.transaction(() => {
         const deleteStmt = db.prepare(SQL.deleteLatestNews);
@@ -33,7 +33,7 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
         );
 
         db.exec(SQL.insertPostMessages);
-        db.exec(SQL.insertPendingNews);
+        db.exec(SQL.insertPendingMessages);
         db.exec(SQL.deleteUpdateMessages);
     })();
 }
@@ -51,22 +51,22 @@ export function listPostMessages(): PostMessages {
     return postMessages;
 }
 
-// If the oldest pending news has not been retrieved for more than 5 minutes, retrieve it and update its retrieval timestamp
-export function retrievePendingNews(): PendingNews {
-    return db.prepare(SQL.retrievePendingNews).get() as PendingNews;
+// If the oldest pending message has not been retrieved for more than 5 minutes, retrieve it and update its retrieval timestamp
+export function retrievePendingMessage(): PendingMessage {
+    return db.prepare(SQL.retrievePendingMessage).get() as PendingMessage;
 }
 
-// Delete pending news
-export function deletePendingNews(id: number): void {
-    db.prepare(SQL.deletePendingNewsById).run({ id });
+// Delete pending message
+export function deletePendingMessage(id: number): void {
+    db.prepare(SQL.deletePendingMessage).run({ id });
 }
 
-// Reset pending news retrieval timestamp
-export function resetPendingNews(id: number): void {
-    db.prepare(SQL.resetPendingNews).run({ id });
+// Reset pending message retrieval timestamp
+export function resetPendingMessage(id: number): void {
+    db.prepare(SQL.resetPendingMessage).run({ id });
 }
 
-// Delete post messages that do not be referenced by any pending news
+// Delete post messages that do not be referenced by any pending messages
 export function deletePostMessages(): void {
     db.exec(SQL.deletePostMessages);
 }
@@ -84,26 +84,30 @@ export function isChannelSubscribed(channelId: Snowflake): boolean {
     return !!db.prepare(SQL.listChannelSubscriptions).get({ channelId });
 }
 
-// Delete channel from pending news and channel subscriptions
+// Delete channel from pending messages and channel subscriptions
+function channelCleanup(channelId: Snowflake): void {
+    db.prepare(SQL.deletePendingMessagesByChannelId).run({ channelId });
+    db.prepare(SQL.deleteChannelSubscriptions).run({ channelId });
+}
+
+// Unsubscribe channel from all categories
 export function channelUnsubscribe(channelId: Snowflake): void {
     db.transaction(() => {
-        db.prepare(SQL.deletePendingNewsByChannelId).run({ channelId });
-        db.prepare(SQL.deleteChannelSubscriptions).run({ channelId });
+        channelCleanup(channelId);
     })();
 }
 
-// Delete channel from pending news and channel subscriptions, and insert channel subscriptions with new categories
+// Unsubscribe channel from all categories and subscribe to new categories
 export function channelSubscribe(channelId: Snowflake, categories: Category[]): void {
     db.transaction(() => {
-        db.prepare(SQL.deletePendingNewsByChannelId).run({ channelId });
-        db.prepare(SQL.deleteChannelSubscriptions).run({ channelId });
+        channelCleanup(channelId);
 
         const stmt = db.prepare(SQL.insertChannelSubscriptions);
         categories.forEach((category) => stmt.run({ channelId, category }));
     })();
 }
 
-// Close the database connection
+// Close database connection
 export function closeDatabase(): void {
     db.close();
 }

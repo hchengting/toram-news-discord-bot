@@ -4,7 +4,7 @@
     "jsr:@db/sqlite@0.12": "0.12.0",
     "jsr:@denosaurs/plug@1": "1.0.6",
     "jsr:@hexagon/croner@9": "9.0.0",
-    "jsr:@retraigo/image-size@*": "1.0.0",
+    "jsr:@retraigo/image-size@1": "1.0.0",
     "jsr:@std/assert@0.217": "0.217.0",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/encoding@0.221": "0.221.0",
@@ -15,7 +15,7 @@
     "npm:@discordjs/rest@^2.4.0": "2.4.0",
     "npm:@types/html-to-text@*": "9.0.4",
     "npm:cheerio@1": "1.0.0",
-    "npm:discord-api-types@~0.37.104": "0.37.104",
+    "npm:discord-api-types@~0.37.106": "0.37.106",
     "npm:discord-interactions@^4.1.0": "4.1.0",
     "npm:html-to-text@^9.0.5": "9.0.5"
   },
@@ -160,8 +160,8 @@
     "deepmerge@4.3.1": {
       "integrity": "sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A=="
     },
-    "discord-api-types@0.37.104": {
-      "integrity": "sha512-kIX9RXGekag1Yd/R/douqBTRyt5GY5mCoxntKLuyqfYpKQ1fl8XpHNFIMtnoDSD343TJWsah49XylrsNFfTu0Q=="
+    "discord-api-types@0.37.106": {
+      "integrity": "sha512-yuBujntynx44/OFCeT2oPhjXakvvav8ugUXBFaTDt2vgSa7l04TenEV2b8HleoDZdKHjtBxwaP8nAQbIcPhuOQ=="
     },
     "discord-api-types@0.37.97": {
       "integrity": "sha512-No1BXPcVkyVD4ZVmbNgDKaBoqgeQ+FJpzZ8wqHkfmBnTZig1FcH3iPPersiK1TUIAzgClh2IvOuVUYfcWLQAOA=="
@@ -311,7 +311,7 @@
       "jsr:@retraigo/image-size@1",
       "npm:@discordjs/rest@^2.4.0",
       "npm:cheerio@1",
-      "npm:discord-api-types@~0.37.104",
+      "npm:discord-api-types@~0.37.106",
       "npm:discord-interactions@^4.1.0",
       "npm:html-to-text@^9.0.5"
     ]

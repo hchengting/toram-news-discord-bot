@@ -1,15 +1,15 @@
 import { DiscordAPIError } from '@discordjs/rest';
+import { getImageInfo } from '@retraigo/image-size';
 import * as cheerio from 'cheerio';
 import { htmlToText } from 'html-to-text';
-import { getImageInfo } from 'jsr:@retraigo/image-size';
 import {
     channelUnsubscribe,
-    deletePendingNews,
+    deletePendingMessage,
     deletePostMessages,
     listLatestNews,
     listPostMessages,
-    resetPendingNews,
-    retrievePendingNews,
+    resetPendingMessage,
+    retrievePendingMessage,
     updateLatestNews,
 } from '~/db/queries.ts';
 import { postChannelMessage } from '~/discord/api.ts';
@@ -232,21 +232,21 @@ function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
     }
 }
 
-async function sendPendingNews(): Promise<void> {
+async function sendPendingMessages(): Promise<void> {
     const postMessages = listPostMessages();
 
     while (true) {
-        const pendingNews = retrievePendingNews();
-        if (!pendingNews) break;
+        const pendingMessage = retrievePendingMessage();
+        if (!pendingMessage) break;
 
-        const { id, channelId, messageId } = pendingNews;
+        const { id, channelId, messageId } = pendingMessage;
         const { body } = postMessages[messageId];
 
         try {
             await postChannelMessage(channelId, body);
-            deletePendingNews(id);
+            deletePendingMessage(id);
         } catch (error) {
-            resetPendingNews(id);
+            resetPendingMessage(id);
 
             // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
             if (['50001', '50013', '10003'].includes((error as DiscordAPIError).code.toString())) {
@@ -266,11 +266,11 @@ export default async function handleSchedule(): Promise<void> {
     const { deletions, updates } = checkNewsDifference(news);
 
     if (updates.length) {
-        const messageUpdates = await Promise.all(updates.map(createPostMessage));
-        const messageChunks = messageUpdates.flatMap((message) => [...splitMessageChunks(message)]);
+        const messages = await Promise.all(updates.map(createPostMessage));
+        const messageChunks = messages.flatMap((message) => [...splitMessageChunks(message)]);
 
         updateLatestNews(deletions, updates, messageChunks);
     }
 
-    await sendPendingNews();
+    await sendPendingMessages();
 }

@@ -1,10 +1,5 @@
 type Category = '商城' | '活動' | '更新' | '維修' | '重要' | 'BUG' | '';
 
-type ImageSize = {
-    width?: number;
-    height?: number;
-};
-
 type News = {
     date: string;
     category: Category;
@@ -18,13 +13,10 @@ type NewsDifference = {
     updates: News[];
 };
 
-type PendingNews =
-    | {
-          id: number;
-          channelId: import('discord-api-types/v10').Snowflake;
-          messageId: number;
-      }
-    | undefined;
+type ImageSize = {
+    width?: number;
+    height?: number;
+};
 
 type PostMessageBody = Required<Pick<import('discord-api-types/v10').RESTPostAPIChannelMessageJSONBody, 'embeds'>>;
 
@@ -39,3 +31,11 @@ type SerializedPostMessage = {
     id: number;
     body: string;
 };
+
+type PendingMessage =
+    | {
+          id: number;
+          channelId: import('discord-api-types/v10').Snowflake;
+          messageId: number;
+      }
+    | undefined;

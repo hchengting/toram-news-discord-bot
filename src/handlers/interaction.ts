@@ -4,7 +4,7 @@ import type {
     APIMessageComponentSelectMenuInteraction,
     Snowflake,
 } from 'discord-api-types/v10';
-import type { Interaction, InteractionResponseParams, VerifyInteraction } from '~/types/interaction.d.ts';
+import type { Interaction, InteractionResponseParams, VerifyInteractionResult } from '~/types/interaction.d.ts';
 
 import { ComponentType, InteractionResponseType, InteractionType } from 'discord-api-types/v10';
 import { verifyKey } from 'discord-interactions';
@@ -17,7 +17,7 @@ import { deserialize, serialize } from '~/helpers/utils.ts';
 const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
 if (!DISCORD_PUBLIC_KEY) throw new Error('Missing Discord public key.');
 
-async function verifyInteraction(request: Request): Promise<VerifyInteraction> {
+async function verifyInteraction(request: Request): Promise<VerifyInteractionResult> {
     if (request.method !== 'POST') {
         return { valid: false, clientError: new Response('Method Not Allowed.', { status: 405 }) };
     }
@@ -56,8 +56,8 @@ async function checkBotPermission(channelId: Snowflake): Promise<boolean> {
 }
 
 function interactionResponse(params: InteractionResponseParams): Response {
-    const { content, components, type = InteractionResponseType.ChannelMessageWithSource } = params;
-    const body = serialize<APIInteractionResponse>({ data: { content, components }, type });
+    const { type = InteractionResponseType.ChannelMessageWithSource, content, components } = params;
+    const body = serialize<APIInteractionResponse>({ type, data: { content, components } });
 
     return new Response(body, { headers: { 'content-type': 'application/json' } });
 }

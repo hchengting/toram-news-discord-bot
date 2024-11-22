@@ -4,16 +4,19 @@ import type {
     APIMessageComponentSelectMenuInteraction,
     APIPingInteraction,
     APIStringSelectComponent,
+    InteractionResponseType,
 } from 'discord-api-types/v10';
-
-import { InteractionResponseType } from 'discord-api-types/v10';
 
 type Interaction = APIPingInteraction | APIChatInputApplicationCommandInteraction | APIMessageComponentSelectMenuInteraction;
 
-export type VerifyInteraction = { valid: false; clientError: Response } | { valid: true; interaction: Interaction };
+type ValidInteraction = { valid: true; interaction: Interaction };
 
-export type InteractionResponseParams = Partial<{
-    content: string;
-    components: APIActionRowComponent<APIStringSelectComponent>[];
-    type: InteractionResponseType.Pong | InteractionResponseType.ChannelMessageWithSource;
-}>;
+type InvalidInteraction = { valid: false; clientError: Response };
+
+export type VerifyInteractionResult = ValidInteraction | InvalidInteraction;
+
+export type InteractionResponseParams = {
+    type?: InteractionResponseType.Pong | InteractionResponseType.ChannelMessageWithSource;
+    content?: string;
+    components?: APIActionRowComponent<APIStringSelectComponent>[];
+};

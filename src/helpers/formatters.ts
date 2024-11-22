@@ -20,7 +20,11 @@ const formatters: Record<string, FormatCallback> = {
         }
     },
     formatTable: (elem, walk, builder, _formatOptions) => {
-        const walkTable = (elem: DomNode) => {
+        builder.openTable();
+        elem.children.forEach(walkTable);
+        builder.closeTable({ tableToString: (rows) => rows.map((row) => row.map((cell) => cell.text).join(' | ')).join('\n') });
+
+        function walkTable(elem: DomNode) {
             if (elem.type !== 'tag') return;
 
             switch (elem.name) {
@@ -42,11 +46,7 @@ const formatters: Record<string, FormatCallback> = {
                     builder.closeTableRow();
                     break;
             }
-        };
-
-        builder.openTable();
-        elem.children.forEach(walkTable);
-        builder.closeTable({ tableToString: (rows) => rows.map((row) => row.map((cell) => cell.text).join(' | ')).join('\n') });
+        }
     },
 };
 
