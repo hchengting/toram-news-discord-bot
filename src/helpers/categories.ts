@@ -7,9 +7,11 @@ const categoryMap: Partial<Record<string, Category>> = {
     'defect': 'BUG',
 };
 
-export const categories = Object.values(categoryMap) as Category[];
+const categories = Object.values(categoryMap) as Category[];
 
-export const componentOptions = [
+export const categoriesCount = categories.length;
+
+export const categoriesOptions = [
     { label: '商城', description: '造型裝備、露珠道具、露珠增值等相關內容', value: '商城' },
     { label: '活動', description: '加速機、限時活動、官方直播、社群活動等相關內容', value: '活動' },
     { label: '更新', description: '遊戲內容更新、版本更新、劇情更新、地圖更新等相關內容', value: '更新' },

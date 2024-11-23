@@ -11,7 +11,7 @@ globalThis.addEventListener('unload', closeDatabase);
 Deno.addSignalListener('SIGINT', Deno.exit);
 if (Deno.build.os !== 'windows') Deno.addSignalListener('SIGTERM', Deno.exit);
 
-const _cron = new Cron('3 * * * * *', async (): Promise<void> => {
+const _cron = new Cron('5 * * * * *', async (): Promise<void> => {
     try {
         await handleSchedule();
     } catch (error) {

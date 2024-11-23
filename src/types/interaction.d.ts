@@ -1,21 +1,31 @@
 import type {
     APIActionRowComponent,
     APIChatInputApplicationCommandInteraction,
+    APIInteractionResponseChannelMessageWithSource,
+    APIInteractionResponsePong,
     APIMessageComponentSelectMenuInteraction,
     APIPingInteraction,
     APIStringSelectComponent,
     InteractionResponseType,
 } from 'discord-api-types/v10';
 
-type Interaction = APIPingInteraction | APIChatInputApplicationCommandInteraction | APIMessageComponentSelectMenuInteraction;
+export type Interaction = APIPingInteraction | APIChatInputApplicationCommandInteraction | APIMessageComponentSelectMenuInteraction;
 
-type ValidInteraction = { valid: true; interaction: Interaction };
+type ValidInteraction = {
+    valid: true;
+    interaction: Interaction;
+};
 
-type InvalidInteraction = { valid: false; clientError: Response };
+type InvalidInteraction = {
+    valid: false;
+    reason: Response;
+};
 
-export type VerifyInteractionResult = ValidInteraction | InvalidInteraction;
+export type InteractionVerificationResult = ValidInteraction | InvalidInteraction;
 
-export type InteractionResponseParams = {
+export type InteractionResponse = APIInteractionResponsePong | APIInteractionResponseChannelMessageWithSource;
+
+export type InteractionResponseOptions = {
     type?: InteractionResponseType.Pong | InteractionResponseType.ChannelMessageWithSource;
     content?: string;
     components?: APIActionRowComponent<APIStringSelectComponent>[];

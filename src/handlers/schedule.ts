@@ -23,9 +23,7 @@ const headers = {
 };
 
 async function fetchNews(): Promise<News[]> {
-    const news: News[] = [];
     const response = await fetch(url, { headers });
-
     if (response.status !== 200) {
         throw new Error(`Failed to fetch ${url}, status code: ${response.status}`);
     }
@@ -37,7 +35,6 @@ async function fetchNews(): Promise<News[]> {
                 selector: 'li.news_border',
                 value: (el, _key) => {
                     const $el = $(el);
-
                     return {
                         date: $el.find('time').attr('datetime') || '',
                         category: getCategory($el.find('img').prop('src') || ''),
@@ -50,9 +47,7 @@ async function fetchNews(): Promise<News[]> {
         ],
     });
 
-    news.push(...data.news.reverse());
-
-    return news;
+    return data.news.reverse();
 }
 
 function checkNewsDifference(news: News[]): NewsDifference {
@@ -62,7 +57,10 @@ function checkNewsDifference(news: News[]): NewsDifference {
     const deletions = [...latestNewsSet.difference(newsSet)].map((n) => deserialize<News>(n));
     const updates = [...newsSet.difference(latestNewsSet)].map((n) => deserialize<News>(n));
 
-    return { deletions, updates };
+    return {
+        deletions,
+        updates,
+    };
 }
 
 async function fetchImageSize(src: string): Promise<ImageSize> {
@@ -84,7 +82,6 @@ async function fetchImageSize(src: string): Promise<ImageSize> {
         chunks = newChunks;
 
         const info = getImageInfo(chunks);
-
         if (info.width && info.height) {
             await reader.cancel();
             return info;
@@ -108,14 +105,12 @@ async function createPostMessage(news: News): Promise<PostMessage> {
 
     // Fetch news content
     const response = await fetch(news.url, { headers });
-
     if (response.status !== 200) {
         throw new Error(`Failed to fetch ${news.url}, status code: ${response.status}`);
     }
 
     const $ = cheerio.load(await response.text(), { baseURI: news.url });
     const $container = $('div.useBox.newsBox');
-
     let $contents = $container.contents();
     let start = $contents.index($container.find('div.smallTitleLine'));
     let end = $contents.index($container.find('h2.deluxetitle:contains("注意事項")'));
@@ -132,7 +127,6 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             $el.remove();
         }
     });
-
     $container.find('a:contains("回頁面頂端")').remove();
     $container.find('h2.deluxetitle:contains("指定怪物")').nextAll('br').remove();
 
@@ -180,7 +174,6 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             images.map(async (el) => {
                 const url = $(el).prop('src') || '';
                 const { width, height } = await fetchImageSize(url);
-
                 return { url, width, height };
             })
         );
@@ -214,9 +207,7 @@ function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
         while (end < embeds.length && end - start < maxEmbeds) {
             const embed = embeds[end];
             const chars = (embed.title?.length || 0) + (embed.description?.length || 0);
-
             if (totalChars + chars > maxChars) break;
-
             totalChars += chars;
             end++;
         }
@@ -268,7 +259,6 @@ export default async function handleSchedule(): Promise<void> {
     if (updates.length) {
         const messages = await Promise.all(updates.map(createPostMessage));
         const messageChunks = messages.flatMap((message) => [...splitMessageChunks(message)]);
-
         updateLatestNews(deletions, updates, messageChunks);
     }
 
