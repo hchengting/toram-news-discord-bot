@@ -1,6 +1,6 @@
 # Toram News Discord Bot
 
-This Discord bot regularly fetches announcements from https://tw.toram.jp/information and sends them to the Discord channel.
+This Discord bot regularly fetches news from https://tw.toram.jp/information and sends it to the Discord channel.
 
 ## Setup Discord Bot
 
@@ -41,6 +41,9 @@ Configure your own interaction endpoint URL.
 Rename `.env.example` to `.env` and fill in your own.
 
 ```env
+DB_PATH=./data/toram-news.db
+DENO_SQLITE_PATH=./lib/libsqlite3.so
+# DENO_SQLITE_PATH=./lib/sqlite3.dll
 APPLICATION_ID=
 DISCORD_BOT_TOKEN=
 DISCORD_PUBLIC_KEY=
@@ -61,6 +64,12 @@ Use `/subscribe` command in the channel.
 
 ## References
 
+-   [Deno Docs](https://docs.deno.com)
+-   [Discord API Reference](https://discord.com/developers/docs/reference)
+-   [Discord REST API](https://discord.js.org/docs/packages/rest/main)
+-   [Croner - Cron for JavaScript and TypeScript](https://jsr.io/@hexagon/croner)
+-   [Deno SQLite3](https://jsr.io/@db/sqlite)
 -   [Welcome to Cheerio! | cheerio](https://cheerio.js.org/docs/intro)
--   [html-to-text - npm](https://www.npmjs.com/package/html-to-text)
--   [@discordjs/rest](https://discord.js.org/docs/packages/rest/main)
+-   [discord-interactions](https://www.npmjs.com/package/discord-interactions)
+-   [html-to-text](https://www.npmjs.com/package/html-to-text)
+-   [image-size](https://jsr.io/@retraigo/image-size)
