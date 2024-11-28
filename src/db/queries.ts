@@ -2,7 +2,7 @@ import type { Snowflake } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
 import SQL from '~/db/sql.ts';
-import { deserialize, serialize } from '~/helpers/utils.ts';
+import { serialize } from '~/helpers/utils.ts';
 
 const DB_PATH = Deno.env.get('DB_PATH');
 if (!DB_PATH) throw new Error('Missing database path.');
@@ -39,14 +39,11 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
 }
 
 // List all post messages using their ids as keys
-export function listPostMessages(): PostMessages {
-    const postMessages: PostMessages = {};
+export function listPostMessages(): SerializedPostMessages {
+    const postMessages: SerializedPostMessages = {};
     const serializedPostMessages = db.prepare(SQL.listPostMessages).all() as SerializedPostMessage[];
 
-    serializedPostMessages.forEach((m) => {
-        const body = deserialize<PostMessageBody>(m.body);
-        postMessages[m.id] = { body };
-    });
+    serializedPostMessages.forEach((m) => (postMessages[m.id] = m.body));
 
     return postMessages;
 }

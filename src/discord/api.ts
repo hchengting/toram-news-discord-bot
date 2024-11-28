@@ -17,16 +17,23 @@ const DISCORD_BOT_TOKEN = Deno.env.get('DISCORD_BOT_TOKEN');
 if (!DISCORD_BOT_TOKEN) throw new Error('Missing Discord bot token.');
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
+const options = { passThroughBody: true, headers: { 'content-type': 'application/json' } };
 
 export function registerCommands(body: RESTPutAPIApplicationCommandsJSONBody): Promise<RESTPutAPIApplicationCommandsResult> {
     return rest.put(Routes.applicationCommands(APPLICATION_ID!), { body }) as Promise<RESTPutAPIApplicationCommandsResult>;
 }
 
+export function postChannelMessage(channelId: Snowflake, body: string): Promise<RESTPostAPIChannelMessageResult>;
+export function postChannelMessage(channelId: Snowflake, body: RESTPostAPIChannelMessageJSONBody): Promise<RESTPostAPIChannelMessageResult>;
 export function postChannelMessage(
     channelId: Snowflake,
-    body: RESTPostAPIChannelMessageJSONBody
+    body: string | RESTPostAPIChannelMessageJSONBody
 ): Promise<RESTPostAPIChannelMessageResult> {
-    return rest.post(Routes.channelMessages(channelId), { body }) as Promise<RESTPostAPIChannelMessageResult>;
+    if (typeof body === 'string') {
+        return rest.post(Routes.channelMessages(channelId), { body, ...options }) as Promise<RESTPostAPIChannelMessageResult>;
+    } else {
+        return rest.post(Routes.channelMessages(channelId), { body }) as Promise<RESTPostAPIChannelMessageResult>;
+    }
 }
 
 export function deleteChannelMessage(channelId: Snowflake, messageId: Snowflake): Promise<RESTDeleteAPIChannelMessageResult> {

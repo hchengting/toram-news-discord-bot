@@ -231,7 +231,7 @@ async function sendPendingMessages(): Promise<void> {
         if (!pendingMessage) break;
 
         const { id, channelId, messageId } = pendingMessage;
-        const { body } = postMessages[messageId];
+        const body = postMessages[messageId];
 
         try {
             await postChannelMessage(channelId, body);

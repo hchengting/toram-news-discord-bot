@@ -25,12 +25,14 @@ type PostMessage = {
     category: Category;
 };
 
-type PostMessages = Record<number, Omit<PostMessage, 'category'>>;
+type SerializedPostMessageBody = string;
 
 type SerializedPostMessage = {
     id: number;
-    body: string;
+    body: SerializedPostMessageBody;
 };
+
+type SerializedPostMessages = Record<number, SerializedPostMessageBody>;
 
 type PendingMessage =
     | {
