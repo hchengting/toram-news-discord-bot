@@ -32,9 +32,7 @@ export function updateLatestNews(deletions: News[], updates: News[], messages: P
             })
         );
 
-        db.exec(SQL.insertPostMessages);
         db.exec(SQL.insertPendingMessages);
-        db.exec(SQL.deleteUpdateMessages);
     })();
 }
 

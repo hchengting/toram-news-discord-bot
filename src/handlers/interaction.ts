@@ -108,8 +108,8 @@ async function handleSelectCategory(interaction: APIMessageComponentSelectMenuIn
     const messageId = interaction.message.id;
     const categories = sortCategories(interaction.data.values as Category[]);
 
-    channelSubscribe(channelId, categories);
     await deleteChannelMessage(channelId, messageId);
+    channelSubscribe(channelId, categories);
 
     return createInteractionResponse({ content: `訂閱成功！類別：${categories.join('、')}` });
 }

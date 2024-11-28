@@ -19,15 +19,11 @@ const SQL = {
             UNIQUE (date, category, title, url, thumbnail)
         );
 
-        CREATE TABLE IF NOT EXISTS update_messages (
+        CREATE TABLE IF NOT EXISTS post_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             body TEXT NOT NULL,
-            category TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS post_messages (
-            id INTEGER PRIMARY KEY,
-            body TEXT NOT NULL
+            category TEXT NOT NULL,
+            is_pending BOOLEAN NOT NULL DEFAULT FALSE
         );
 
         CREATE TABLE IF NOT EXISTS pending_messages (
@@ -52,20 +48,12 @@ const SQL = {
         WHERE url = :url;
     `,
     insertUpdateMessages: `
-        INSERT INTO update_messages (body, category)
+        INSERT INTO post_messages (body, category)
         VALUES (:body, :category);
     `,
-    deleteUpdateMessages: `
-        DELETE FROM update_messages;
-    `,
     listPostMessages: `
-        SELECT *
-        FROM post_messages;
-    `,
-    insertPostMessages: `
-        INSERT INTO post_messages (id, body)
         SELECT id, body
-        FROM update_messages;
+        FROM post_messages;
     `,
     deletePostMessages: `
         DELETE FROM post_messages
@@ -77,11 +65,16 @@ const SQL = {
     `,
     insertPendingMessages: `
         INSERT INTO pending_messages (channel_id, message_id)
-        SELECT channel_subscriptions.channel_id, update_messages.id
+        SELECT channel_subscriptions.channel_id, post_messages.id
         FROM channel_subscriptions
-        INNER JOIN update_messages
-        ON channel_subscriptions.category = update_messages.category
-        ORDER BY update_messages.id ASC;
+        INNER JOIN post_messages
+        ON channel_subscriptions.category = post_messages.category
+        AND post_messages.is_pending = FALSE
+        ORDER BY post_messages.id ASC;
+
+        UPDATE post_messages
+        SET is_pending = TRUE
+        WHERE is_pending = FALSE;
     `,
     retrievePendingMessage: `
         UPDATE pending_messages
