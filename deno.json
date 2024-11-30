@@ -9,7 +9,7 @@
     "@hexagon/croner": "jsr:@hexagon/croner@^9.0.0",
     "@retraigo/image-size": "jsr:@retraigo/image-size@^1.0.0",
     "cheerio": "npm:cheerio@^1.0.0",
-    "discord-api-types": "npm:discord-api-types@^0.37.106",
+    "discord-api-types": "npm:discord-api-types@^0.37.110",
     "discord-interactions": "npm:discord-interactions@^4.1.0",
     "html-to-text": "npm:html-to-text@^9.0.5",
     "~/": "./src/"

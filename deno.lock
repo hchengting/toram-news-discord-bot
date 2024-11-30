@@ -15,7 +15,7 @@
     "npm:@discordjs/rest@^2.4.0": "2.4.0",
     "npm:@types/html-to-text@*": "9.0.4",
     "npm:cheerio@1": "1.0.0",
-    "npm:discord-api-types@~0.37.106": "0.37.106",
+    "npm:discord-api-types@~0.37.110": "0.37.110",
     "npm:discord-interactions@^4.1.0": "4.1.0",
     "npm:html-to-text@^9.0.5": "9.0.5"
   },
@@ -160,8 +160,8 @@
     "deepmerge@4.3.1": {
       "integrity": "sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A=="
     },
-    "discord-api-types@0.37.106": {
-      "integrity": "sha512-yuBujntynx44/OFCeT2oPhjXakvvav8ugUXBFaTDt2vgSa7l04TenEV2b8HleoDZdKHjtBxwaP8nAQbIcPhuOQ=="
+    "discord-api-types@0.37.110": {
+      "integrity": "sha512-wVaAJkrSgNRo8nd523qKYPqkClTNHhjKOk/g6265rzHuc7TNS6Ivz06DPW4iZvnhFobbH95hKlgsRf6jcAbtlA=="
     },
     "discord-api-types@0.37.97": {
       "integrity": "sha512-No1BXPcVkyVD4ZVmbNgDKaBoqgeQ+FJpzZ8wqHkfmBnTZig1FcH3iPPersiK1TUIAzgClh2IvOuVUYfcWLQAOA=="
@@ -311,7 +311,7 @@
       "jsr:@retraigo/image-size@1",
       "npm:@discordjs/rest@^2.4.0",
       "npm:cheerio@1",
-      "npm:discord-api-types@~0.37.106",
+      "npm:discord-api-types@~0.37.110",
       "npm:discord-interactions@^4.1.0",
       "npm:html-to-text@^9.0.5"
     ]
