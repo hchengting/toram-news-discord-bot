@@ -46,9 +46,9 @@ export function listPostMessages(): SerializedPostMessages {
     return postMessages;
 }
 
-// If the oldest pending message has not been retrieved for more than 5 minutes, retrieve it and update its retrieval timestamp
-export function retrievePendingMessage(): PendingMessage {
-    return db.prepare(SQL.retrievePendingMessage).get() as PendingMessage;
+// Retrieve all pending messages that have the same minimum message id and have not been retrieved for more than 5 minutes
+export function retrievePendingMessages(): PendingMessage[] {
+    return db.prepare(SQL.retrievePendingMessages).all() as PendingMessage[];
 }
 
 // Delete pending message

@@ -32,12 +32,10 @@ type SerializedPostMessage = {
     body: SerializedPostMessageBody;
 };
 
-type SerializedPostMessages = Record<number, SerializedPostMessageBody>;
+type SerializedPostMessages = Partial<Record<number, SerializedPostMessageBody>>;
 
-type PendingMessage =
-    | {
-          id: number;
-          channelId: import('discord-api-types/v10').Snowflake;
-          messageId: number;
-      }
-    | undefined;
+type PendingMessage = {
+    id: number;
+    channelId: import('discord-api-types/v10').Snowflake;
+    messageId: number;
+};

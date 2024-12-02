@@ -9,7 +9,7 @@ globalThis.addEventListener('unload', closeDatabase);
 Deno.addSignalListener('SIGINT', Deno.exit);
 if (Deno.build.os !== 'windows') Deno.addSignalListener('SIGTERM', Deno.exit);
 
-const _cron = new Cron('5 * * * * *', async () => {
+const _cron = new Cron('3 * * * * *', async () => {
     try {
         await handleSchedule();
     } catch (error) {

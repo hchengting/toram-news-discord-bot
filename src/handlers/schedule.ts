@@ -9,13 +9,13 @@ import {
     listLatestNews,
     listPostMessages,
     resetPendingMessage,
-    retrievePendingMessage,
+    retrievePendingMessages,
     updateLatestNews,
 } from '~/db/queries.ts';
 import { postChannelMessage } from '~/discord/api.ts';
 import { getCategory } from '~/helpers/categories.ts';
 import formatters from '~/helpers/formatters.ts';
-import { deserialize, serialize } from '~/helpers/utils.ts';
+import { deserialize, logError, serialize } from '~/helpers/utils.ts';
 
 const url = 'https://tw.toram.jp/information';
 const headers = {
@@ -225,25 +225,32 @@ function* splitMessageChunks(message: PostMessage): Iterable<PostMessage> {
 
 async function sendPendingMessages(): Promise<void> {
     const postMessages = listPostMessages();
+    if (!Object.keys(postMessages).length) return;
 
-    while (true) {
-        const pendingMessage = retrievePendingMessage();
-        if (!pendingMessage) break;
+    let stopSending = false;
+    let pendingMessages: PendingMessage[];
 
-        const { id, channelId, messageId } = pendingMessage;
-        const body = postMessages[messageId];
+    while (!stopSending && (pendingMessages = retrievePendingMessages()).length) {
+        const results = await Promise.allSettled(
+            pendingMessages.map((message) => postChannelMessage(message.channelId, postMessages[message.messageId]!))
+        );
 
-        try {
-            await postChannelMessage(channelId, body);
-            deletePendingMessage(id);
-        } catch (error) {
-            resetPendingMessage(id);
+        for (let i = 0; i < pendingMessages.length; i++) {
+            const { id, channelId } = pendingMessages[i];
+            const result = results[i];
 
-            // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
-            if (['50001', '50013', '10003'].includes((error as DiscordAPIError).code.toString())) {
-                channelUnsubscribe(channelId);
+            if (result.status === 'fulfilled') {
+                deletePendingMessage(id);
             } else {
-                throw error;
+                // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
+                if (result.reason instanceof DiscordAPIError && ['50001', '50013', '10003'].includes(result.reason.code.toString())) {
+                    channelUnsubscribe(channelId);
+                } else {
+                    // Unknown error, retry on next schedule
+                    resetPendingMessage(id);
+                    logError(result.reason);
+                    stopSending = true;
+                }
             }
         }
     }

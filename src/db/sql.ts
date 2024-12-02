@@ -76,11 +76,11 @@ const SQL = {
         SET is_pending = TRUE
         WHERE is_pending = FALSE;
     `,
-    retrievePendingMessage: `
+    retrievePendingMessages: `
         UPDATE pending_messages
         SET retrieved_at = unixepoch()
-        WHERE id = (
-            SELECT MIN(id)
+        WHERE message_id = (
+            SELECT MIN(message_id)
             FROM pending_messages
         )
         AND unixepoch() - retrieved_at > 300
