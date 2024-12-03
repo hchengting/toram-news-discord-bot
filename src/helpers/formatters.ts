@@ -2,7 +2,7 @@
 import type { DomNode, FormatCallback } from 'html-to-text';
 
 const formatters: Record<string, FormatCallback> = {
-    formatAnchor: (elem, walk, builder, _formatOptions) => {
+    formatAnchor: (elem, walk, builder) => {
         const isText = elem.children?.filter((child) => child.type === 'text')?.length === 1;
         const href = elem.attribs?.href || '';
 
@@ -19,7 +19,7 @@ const formatters: Record<string, FormatCallback> = {
             builder.addInline(href, { noWordTransform: true });
         }
     },
-    formatTable: (elem, walk, builder, _formatOptions) => {
+    formatTable: (elem, walk, builder) => {
         builder.openTable();
         elem.children.forEach(walkTable);
         builder.closeTable({ tableToString: (rows) => rows.map((row) => row.map((cell) => cell.text).join(' | ')).join('\n') });

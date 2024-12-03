@@ -13,7 +13,8 @@ type NewsDifference = {
     updates: News[];
 };
 
-type ImageSize = {
+type ImageInfo = {
+    url: string;
     width?: number;
     height?: number;
 };

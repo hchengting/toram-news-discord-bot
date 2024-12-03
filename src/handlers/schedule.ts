@@ -15,7 +15,7 @@ import {
 import { postChannelMessage } from '~/discord/api.ts';
 import { getCategory } from '~/helpers/categories.ts';
 import formatters from '~/helpers/formatters.ts';
-import { deserialize, logError, serialize } from '~/helpers/utils.ts';
+import { deserialize, logError, logInfo, serialize } from '~/helpers/utils.ts';
 
 const url = 'https://tw.toram.jp/information';
 const headers = {
@@ -33,7 +33,7 @@ async function fetchNews(): Promise<News[]> {
         news: [
             {
                 selector: 'li.news_border',
-                value: (el, _key) => {
+                value: (el) => {
                     const $el = $(el);
                     return {
                         date: $el.find('time').attr('datetime') || '',
@@ -57,20 +57,16 @@ function checkNewsDifference(news: News[]): NewsDifference {
     const deletions = [...latestNewsSet.difference(newsSet)].map((n) => deserialize<News>(n));
     const updates = [...newsSet.difference(latestNewsSet)].map((n) => deserialize<News>(n));
 
-    return {
-        deletions,
-        updates,
-    };
+    return { deletions, updates };
 }
 
-async function fetchImageSize(src: string): Promise<ImageSize> {
-    if (!src) return {};
-
-    const response = await fetch(src, { headers });
-    if (response.status !== 200 || !response.body) return {};
+async function fetchImageInfo(url: string): Promise<ImageInfo> {
+    const response = await fetch(url, { headers });
+    if (response.status !== 200 || !response.body) return { url };
 
     const reader = response.body.getReader();
     let chunks = new Uint8Array();
+    let width, height;
 
     while (true) {
         const { done, value } = await reader.read();
@@ -83,15 +79,18 @@ async function fetchImageSize(src: string): Promise<ImageSize> {
 
         const info = getImageInfo(chunks);
         if (info.width && info.height) {
+            ({ width, height } = info);
             await reader.cancel();
-            return info;
+            break;
         }
     }
 
-    return getImageInfo(chunks);
+    return { url, width, height };
 }
 
 async function createPostMessage(news: News): Promise<PostMessage> {
+    logInfo(`Creating post message for ${news.title}...`);
+
     const message: PostMessage = {
         body: {
             embeds: [],
@@ -99,16 +98,13 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         category: news.category,
     };
 
-    // Fetch thumbnail image size
-    const thumbnail = await fetchImageSize(news.thumbnail);
-    const embedThumbnail = { url: news.thumbnail, width: thumbnail.width, height: thumbnail.height };
-
     // Fetch news content
     const response = await fetch(news.url, { headers });
     if (response.status !== 200) {
         throw new Error(`Failed to fetch ${news.url}, status code: ${response.status}`);
     }
 
+    // Parse news content
     const $ = cheerio.load(await response.text(), { baseURI: news.url });
     const $container = $('div.useBox.newsBox');
     let $contents = $container.contents();
@@ -119,7 +115,6 @@ async function createPostMessage(news: News): Promise<PostMessage> {
     // Remove unwant elements
     $contents.each((i, el) => {
         const $el = $(el);
-
         if (i <= start || i >= end) {
             $el.remove();
         } else if ($el.is('a') && $el.text() === '注意事項' && $contents.eq(i - 1).text() === '\n・') {
@@ -146,7 +141,7 @@ async function createPostMessage(news: News): Promise<PostMessage> {
         const $section = $contents.slice(sectionIndexs[i] + 1, sectionIndexs[i + 1]);
         const title = i === 0 ? news.title : $deluxeTitles.eq(i - 1).text();
         const url = i === 0 ? news.url : `${news.url}#${$deluxeTitles.eq(i - 1).attr('id')}`;
-        const thumbnail = i === 0 ? embedThumbnail : undefined;
+        const thumbnail = i === 0 ? { url: news.thumbnail } : undefined;
 
         // Convert section html to text
         const description = htmlToText($.html($section), {
@@ -168,15 +163,11 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             ],
         }).replace(/\n{3,}/g, '\n\n');
 
-        // Extract images from this section and fetch their sizes
-        const images = $section.find('img').toArray();
-        const embedImages = await Promise.all(
-            images.map(async (el) => {
-                const url = $(el).prop('src') || '';
-                const { width, height } = await fetchImageSize(url);
-                return { url, width, height };
-            })
-        );
+        // Extract images from this section
+        const images = $section
+            .find('img')
+            .toArray()
+            .map((el) => ({ url: $(el).prop('src') || '' }));
 
         // Add section data and the first image to embeds
         message.body.embeds.push({
@@ -184,12 +175,25 @@ async function createPostMessage(news: News): Promise<PostMessage> {
             url,
             thumbnail,
             description: description.slice(0, 2048),
-            image: embedImages.shift(),
+            image: images.shift(),
         });
 
         // Add remaining images to embeds using same url to display as gallery
-        message.body.embeds.push(...embedImages.map((img) => ({ url, image: img })));
+        message.body.embeds.push(...images.map((img) => ({ url, image: img })));
     }
+
+    // Fetch thumbnail and image info
+    message.body.embeds = await Promise.all(
+        message.body.embeds.map(async (embed) => {
+            [embed.thumbnail, embed.image] = await Promise.all([
+                embed.thumbnail?.url ? fetchImageInfo(embed.thumbnail.url) : undefined,
+                embed.image?.url ? fetchImageInfo(embed.image.url) : undefined,
+            ]);
+            return embed;
+        })
+    );
+
+    logInfo(`Post message created for ${news.title}.`);
 
     return message;
 }
@@ -231,6 +235,8 @@ async function sendPendingMessages(): Promise<void> {
     let pendingMessages: PendingMessage[];
 
     while (!stopSending && (pendingMessages = retrievePendingMessages()).length) {
+        logInfo(`Sending ${pendingMessages.length} pending messages with message id ${pendingMessages[0].messageId}...`);
+
         const results = await Promise.allSettled(
             pendingMessages.map((message) => postChannelMessage(message.channelId, postMessages[message.messageId]!))
         );
@@ -245,14 +251,17 @@ async function sendPendingMessages(): Promise<void> {
                 // 50001: Missing Access, 50013: Missing Permissions, 10003: Unknown Channel
                 if (result.reason instanceof DiscordAPIError && ['50001', '50013', '10003'].includes(result.reason.code.toString())) {
                     channelUnsubscribe(channelId);
+                    logInfo(`Channel ${channelId} unsubscribed due to Discord error code ${result.reason.code}.`);
                 } else {
                     // Unknown error, retry on next schedule
                     resetPendingMessage(id);
-                    logError(result.reason);
+                    logError(`Failed to send message ${id} to channel ${channelId}.`, result.reason);
                     stopSending = true;
                 }
             }
         }
+
+        logInfo(`Pending messages with message id ${pendingMessages[0].messageId} sent.`);
     }
 
     deletePostMessages();

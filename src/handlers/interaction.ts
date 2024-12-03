@@ -7,7 +7,7 @@ import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelS
 import { deleteChannelMessage, postChannelMessage } from '~/discord/api.ts';
 import commands from '~/discord/commands.ts';
 import { categoriesCount, categoriesOptions, sortCategories } from '~/helpers/categories.ts';
-import { deserialize, serialize } from '~/helpers/utils.ts';
+import { deserialize, logInfo, serialize } from '~/helpers/utils.ts';
 
 const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
 if (!DISCORD_PUBLIC_KEY) throw new Error('Missing Discord public key.');
@@ -28,12 +28,7 @@ async function verifyInteraction(request: Request): Promise<InteractionVerificat
         return { valid: false, reason: new Response('Bad request signature.', { status: 401 }) };
     }
 
-    try {
-        const interaction = deserialize<Interaction>(body);
-        return { valid: true, interaction };
-    } catch (_error) {
-        return { valid: false, reason: new Response('Invalid JSON payload.', { status: 400 }) };
-    }
+    return { valid: true, interaction: deserialize<Interaction>(body) };
 }
 
 async function checkBotPermission(channelId: Snowflake): Promise<boolean> {
@@ -65,14 +60,18 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
             const categories = sortCategories(subscribedCategories);
 
             if (!categories.length) {
+                logInfo(`Received /list command from channel ${channelId} with no subscriptions.`);
                 return createInteractionResponse({ content: '未訂閱！' });
             } else {
+                logInfo(`Received /list command from channel ${channelId} with subscriptions: ${categories.join('、')}.`);
                 return createInteractionResponse({ content: `已訂閱類別：${categories.join('、')}` });
             }
         case commands.SUBSCRIBE.name:
             if (!(await checkBotPermission(channelId))) {
+                logInfo(`Received /subscribe command from channel ${channelId} with insufficient permissions.`);
                 return createInteractionResponse({ content: '訂閱失敗！請檢查發送訊息、嵌入連結等相關權限。' });
             } else {
+                logInfo(`Received /subscribe command from channel ${channelId}.`);
                 return createInteractionResponse({
                     components: [
                         {
@@ -93,9 +92,11 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
             }
         case commands.UNSUBSCRIBE.name:
             if (!isChannelSubscribed(channelId)) {
+                logInfo(`Received /unsubscribe command from channel ${channelId} with no subscriptions.`);
                 return createInteractionResponse({ content: '未訂閱！' });
             } else {
                 channelUnsubscribe(channelId);
+                logInfo(`Received /unsubscribe command from channel ${channelId}.`);
                 return createInteractionResponse({ content: '取消訂閱成功！' });
             }
         default:
@@ -110,6 +111,7 @@ async function handleSelectCategory(interaction: APIMessageComponentSelectMenuIn
 
     await deleteChannelMessage(channelId, messageId);
     channelSubscribe(channelId, categories);
+    logInfo(`Received category selection from channel ${channelId}: ${categories.join('、')}.`);
 
     return createInteractionResponse({ content: `訂閱成功！類別：${categories.join('、')}` });
 }
