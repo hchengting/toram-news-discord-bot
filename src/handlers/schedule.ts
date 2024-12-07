@@ -13,7 +13,7 @@ import {
     updateLatestNews,
 } from '~/db/queries.ts';
 import { postChannelMessage } from '~/discord/api.ts';
-import { getCategory } from '~/helpers/categories.ts';
+import { extractCategory } from '~/helpers/categories.ts';
 import formatters from '~/helpers/formatters.ts';
 import { deserialize, logError, logInfo, serialize } from '~/helpers/utils.ts';
 
@@ -37,7 +37,7 @@ async function fetchNews(): Promise<News[]> {
                     const $el = $(el);
                     return {
                         date: $el.find('time').attr('datetime') || '',
-                        category: getCategory($el.find('img').prop('src') || ''),
+                        category: extractCategory($el.find('img').prop('src')),
                         title: $el.find('p.news_title').text() || '',
                         url: $el.find('a').prop('href') || '',
                         thumbnail: $el.find('img').prop('src') || '',

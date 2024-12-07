@@ -1,4 +1,4 @@
-type Category = '商城' | '活動' | '更新' | '維修' | '重要' | 'BUG' | '';
+type Category = import('~/helpers/categories.ts').Category;
 
 type News = {
     date: string;

@@ -6,7 +6,7 @@ import { verifyKey } from 'discord-interactions';
 import { channelSubscribe, channelUnsubscribe, isChannelSubscribed, listChannelSubscriptions } from '~/db/queries.ts';
 import { deleteChannelMessage, postChannelMessage } from '~/discord/api.ts';
 import commands from '~/discord/commands.ts';
-import { categoriesCount, categoriesOptions, sortCategories } from '~/helpers/categories.ts';
+import { categoriesOptions } from '~/helpers/categories.ts';
 import { deserialize, logInfo, serialize } from '~/helpers/utils.ts';
 
 const DISCORD_PUBLIC_KEY = Deno.env.get('DISCORD_PUBLIC_KEY');
@@ -56,8 +56,7 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
     switch (interaction.data.name) {
         // deno-lint-ignore no-case-declarations
         case commands.LIST.name:
-            const subscribedCategories = listChannelSubscriptions(channelId);
-            const categories = sortCategories(subscribedCategories);
+            const categories = listChannelSubscriptions(channelId);
 
             if (!categories.length) {
                 logInfo(`Received /list command from channel ${channelId} with no subscriptions.`);
@@ -79,10 +78,10 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
                             components: [
                                 {
                                     type: ComponentType.StringSelect,
-                                    custom_id: 'select',
+                                    custom_id: 'categories',
                                     placeholder: '請選擇訂閱類別',
                                     min_values: 1,
-                                    max_values: categoriesCount,
+                                    max_values: categoriesOptions.length,
                                     options: categoriesOptions,
                                 },
                             ],
@@ -107,10 +106,10 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
 async function handleSelectCategory(interaction: APIMessageComponentSelectMenuInteraction): Promise<Response> {
     const channelId = interaction.channel.id;
     const messageId = interaction.message.id;
-    const categories = sortCategories(interaction.data.values as Category[]);
+    const categories = interaction.data.values;
 
     await deleteChannelMessage(channelId, messageId);
-    channelSubscribe(channelId, categories);
+    channelSubscribe(channelId, categories as Category[]);
     logInfo(`Received category selection from channel ${channelId}: ${categories.join('、')}.`);
 
     return createInteractionResponse({ content: `訂閱成功！類別：${categories.join('、')}` });

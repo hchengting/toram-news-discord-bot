@@ -2,6 +2,7 @@ import type { Snowflake } from 'discord-api-types/v10';
 
 import { Database } from '@db/sqlite';
 import SQL from '~/db/sql.ts';
+import { sortCategories } from '~/helpers/categories.ts';
 import { serialize } from '~/helpers/utils.ts';
 
 const DB_PATH = Deno.env.get('DB_PATH');
@@ -68,10 +69,10 @@ export function deletePostMessages(): void {
 
 // List subscribed categories of a channel
 export function listChannelSubscriptions(channelId: Snowflake): Category[] {
-    return db
-        .prepare(SQL.listChannelSubscriptions)
-        .all({ channelId })
-        .map((s) => s.category);
+    const subscriptions = db.prepare(SQL.listChannelSubscriptions).all({ channelId });
+    const categories = sortCategories(subscriptions.map((s) => s.category));
+
+    return categories;
 }
 
 // Check if a channel is subscribed to any category
@@ -98,6 +99,7 @@ export function channelSubscribe(channelId: Snowflake, categories: Category[]): 
         channelCleanup(channelId);
 
         const stmt = db.prepare(SQL.insertChannelSubscriptions);
+        categories = sortCategories(categories);
         categories.forEach((category) => stmt.run({ channelId, category }));
     })();
 }
