@@ -1,4 +1,4 @@
-// @deno-types="npm:@types/html-to-text"
+// @ts-types="npm:@types/html-to-text"
 import type { DomNode, FormatCallback } from 'html-to-text';
 
 const formatters: Record<string, FormatCallback> = {
