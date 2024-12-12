@@ -1,0 +1,54 @@
+services:
+  toram-news:
+    image: ghcr.io/hchengting/toram-news-discord-bot:main
+    container_name: toram-news
+    restart: unless-stopped
+    mem_limit: 256m
+    env_file: .env
+    expose: [3000/tcp]
+    volumes:
+      - ./data:/app/data
+
+  caddy:
+    image: caddy:2.9.1-alpine
+    container_name: caddy
+    restart: unless-stopped
+    mem_limit: 256m
+    ports:
+      - 80:80
+      - 443:443
+    configs:
+      - source: Caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - ~/.caddy/data:/data
+      - ~/.caddy/config:/config
+      - ~/.caddy/logs:/logs
+
+configs:
+  Caddyfile:
+    content: |
+      (log) {
+        log {
+          format console
+          output file /logs/{args[0]}.log {
+            roll_size 10mb
+            roll_keep 20
+            roll_keep_for 7d
+          }
+        }
+      }
+
+      (encode) {
+        encode {
+          zstd
+          gzip
+          minimum_length 1024
+        }
+      }
+
+      ${DOMAIN} {
+        reverse_proxy toram-news:3000
+        import log toram-news
+        import encode
+      }

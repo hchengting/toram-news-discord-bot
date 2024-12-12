@@ -49,11 +49,12 @@ DISCORD_BOT_TOKEN=
 DISCORD_PUBLIC_KEY=
 ```
 
-### Run Docker Container
+### Start the Bot
+
+Here we are using Caddy as the reverse proxy, you can also configure your own.
 
 ```bash
-mkdir data
-docker run -d --name toram-news-discord-bot --restart always --memory 256m --env-file .env -p 127.0.0.1:3000:3000 -v ./data:/app/data ghcr.io/hchengting/toram-news-discord-bot
+DOMAIN=<YOUR_DOMAIN> docker compose up -d
 ```
 
 ## Subscribe to Toram News

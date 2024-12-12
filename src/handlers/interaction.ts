@@ -68,7 +68,7 @@ async function handleSlashCommand(interaction: APIChatInputApplicationCommandInt
         case commands.SUBSCRIBE.name:
             if (!(await checkBotPermission(channelId))) {
                 logInfo(`Received /subscribe command from channel ${channelId} with insufficient permissions.`);
-                return createInteractionResponse({ content: '訂閱失敗！請檢查發送訊息、嵌入連結等相關權限。' });
+                return createInteractionResponse({ content: '訂閱失敗！請檢查頻道身分組發送訊息、嵌入連結等相關權限。' });
             } else {
                 logInfo(`Received /subscribe command from channel ${channelId}.`);
                 return createInteractionResponse({
