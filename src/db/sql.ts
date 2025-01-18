@@ -29,7 +29,7 @@ const SQL = {
         CREATE TABLE IF NOT EXISTS pending_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id TEXT NOT NULL,
-            message_id TEXT NOT NULL,
+            message_id INTEGER NOT NULL,
             retrieved_at NOT NULL DEFAULT 0,
             FOREIGN KEY (message_id) REFERENCES post_messages(id)
         );

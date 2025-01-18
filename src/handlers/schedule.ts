@@ -165,8 +165,9 @@ async function createPostMessage(news: News): Promise<PostMessage> {
 
         // Extract images from this section
         const images = $section
-            .find('img')
+            .map((_i, el) => $(el).filter('img').add($(el).find('img')).toArray())
             .toArray()
+            .flat()
             .map((el) => ({ url: $(el).prop('src') || '' }));
 
         // Add section data and the first image to embeds
