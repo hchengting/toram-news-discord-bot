@@ -3,10 +3,11 @@ import type { DomNode, FormatCallback } from 'html-to-text';
 
 const formatters: Record<string, FormatCallback> = {
     formatAnchor: (elem, walk, builder) => {
-        const isText = elem.children?.filter((child) => child.type === 'text')?.length === 1;
         const href = elem.attribs?.href || '';
+        const texts = elem.children?.filter((child) => child.type === 'text') || [];
+        const isTextUrl = texts[0]?.data?.startsWith('http');
 
-        if (isText && href) {
+        if (href && texts.length === 1 && !isTextUrl) {
             builder.startNoWrap();
             builder.addLiteral(`[`);
             walk(elem.children, builder);
@@ -16,7 +17,7 @@ const formatters: Record<string, FormatCallback> = {
             builder.stopNoWrap();
         } else {
             walk(elem.children, builder);
-            builder.addInline(href, { noWordTransform: true });
+            if (!isTextUrl) builder.addInline(href, { noWordTransform: true });
         }
     },
     formatTable: (elem, walk, builder) => {
